@@ -1,61 +1,61 @@
-cmake_minimum_required(VERSION 3.10.0)
-project(LandingMoon VERSION 0.1.0 LANGUAGES C CXX)
+cmake_minimum_required(VERSION 3.14)
 
-add_compile_definitions(UNICODE _UNICODE)
+include(FetchContent)
 
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
+if(NOT SET_UP_CONFIGURATIONS_DONE)
+    set(SET_UP_CONFIGURATIONS_DONE TRUE)
 
-file(GLOB_RECURSE SOURCE_FILES "${CMAKE_SOURCE_DIR}/src/*.cpp")
-file(GLOB_RECURSE HEADER_FILES "${CMAKE_SOURCE_DIR}/src/include/*.h")
-file(GLOB_RECURSE HLSL_FILES "${CMAKE_SOURCE_DIR}/src/HLSL/*.hlsl" "${CMAKE_SOURCE_DIR}/src/HLSL/*.hlsli")
-message(STATUS "Found HLSL files: ${HLSL_FILES}")
+    # No reason to set CMAKE_CONFIGURATION_TYPES if it's not a multiconfig generator
+    # Also no reason mess with CMAKE_BUILD_TYPE if it's a multiconfig generator.
+    get_property(isMultiConfig GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+    if(isMultiConfig)
+        set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "" FORCE) 
+    else()
+        if(NOT CMAKE_BUILD_TYPE)
+            message("Defaulting to release build.")
+            set(CMAKE_BUILD_TYPE Release CACHE STRING "" FORCE)
+        endif()
+        set_property(CACHE CMAKE_BUILD_TYPE PROPERTY HELPSTRING "Choose the type of build")
+        # set the valid options for cmake-gui drop-down list
+        set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug;Release;Profile")
+    endif()
+    # now set up the Profile configuration
+    set(CMAKE_C_FLAGS_PROFILE "...")
+    set(CMAKE_CXX_FLAGS_PROFILE "...")
+    set(CMAKE_EXE_LINKER_FLAGS_PROFILE "...")
+endif()
 
-foreach(HLSL_FILE ${HLSL_FILES})
-
-	get_filename_component(HLSL_FDIR ${HLSL_FILE} DIRECTORY)
-	get_filename_component(HLSL_FBASENAME_WE ${HLSL_FILE} NAME_WE)
-	string(CONCAT HLSL_FNAME_WE ${HLSL_FDIR} / ${HLSL_FBASENAME_WE})
-
-	string(LENGTH ${HLSL_FBASENAME_WE} LEN_FNAME_WE)
-	math(EXPR LEN_FNAME_WE "${LEN_FNAME_WE}-2")
-	string(SUBSTRING ${HLSL_FBASENAME_WE} ${LEN_FNAME_WE} 2 ENTRY_POINT)
-	string(TOLOWER ${ENTRY_POINT} SHADER_TYPE)
-
-	if ("${SHADER_TYPE}" STREQUAL "vs") 
-		set(SHADER_TYPE "Vertex")
-	elseif("${SHADER_TYPE}" STREQUAL "hs") 
-		set(SHADER_TYPE "Hull")
-	elseif("${SHADER_TYPE}" STREQUAL "ds") 
-		set(SHADER_TYPE "Domain")
-	elseif("${SHADER_TYPE}" STREQUAL "gs") 
-		set(SHADER_TYPE "Geometry")
-	elseif("${SHADER_TYPE}" STREQUAL "ps")
-		set(SHADER_TYPE "Pixel")
-	elseif("${SHADER_TYPE}" STREQUAL "cs")
-		set(SHADER_TYPE "Compute")
-	endif()
-	set_source_files_properties(${HLSL_FILE} PROPERTIES
-								VS_SHADER_OBJECT_FILE_NAME HLSL/${HLSL_FBASENAME_WE}.cso
-								VS_SHADER_TYPE ${SHADER_TYPE}
-								VS_SHADER_MODEL 5.0
-								VS_SHADER_ENTRYPOINT ${ENTRY_POINT}
-								VS_SHADER_DISABLE_OPTIMIZATIONS $<$<CONFIG:Debug>:true>
-								VS_SHADER_ENABLE_DEBUG $<$<CONFIG:Debug>:true>)
-endforeach()
-source_group("HLSL Files" FILES ${HLSL_FILES})
-
-add_executable(LandingMoon WIN32 ${SOURCE_FILES} ${HEADER_FILES} ${HLSL_FILES})
+project("LandingMoon")
 
 
-target_include_directories(LandingMoon PUBLIC "${CMAKE_SOURCE_DIR}/src/include")
+set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
 
-target_link_libraries(LandingMoon d3d11.lib dxgi.lib dxguid.lib D3DCompiler.lib d2d1.lib dwrite.lib winmm.lib)
+#
+# Assimp
+#
+set(ASSIMP_BUILD_ZLIB ON)
+set(ASSIMP_BUILD_ASSIMP_TOOLS OFF)
+set(ASSIMP_BUILD_TESTS OFF)
+set(ASSIMP_INSTALL OFF)
+set(ASSIMP_INJECT_DEBUG_POSTFIX OFF)
 
-set_target_properties(LandingMoon PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_SOURCE_DIR}/bin/debug"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_SOURCE_DIR}/bin/release"
-    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_SOURCE_DIR}/bin/relwithdebinfo"
-    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_SOURCE_DIR}/bin/minsizerel"
-)
+if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/assimp/CMakeLists.txt")
+    add_subdirectory("src/assimp")
+else()
+    FetchContent_Declare(
+        assimp
+        GIT_REPOSITORY https://github.com/assimp/assimp.git
+        GIT_TAG v5.2.4
+    )
+    FetchContent_MakeAvailable(assimp)
+endif()
+set_target_properties(assimp PROPERTIES FOLDER "assimp")
+set_target_properties(UpdateAssimpLibsDebugSymbolsAndDLLs PROPERTIES FOLDER "assimp")
+set_target_properties(zlibstatic PROPERTIES FOLDER "assimp")
+
+
+
+
+add_subdirectory("src/LandingMoon")
