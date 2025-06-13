@@ -1,24 +1,19 @@
 #ifndef GAMEAPP_H
 #define GAMEAPP_H
 
+#include <WinMin.h>
 #include "d3dApp.h"
+#include "Effects.h"
+#include <Camera.h>
+#include <RenderStates.h>
+#include <GameObject.h>
+#include <Texture2D.h>
+#include <Buffer.h>
+#include <ModelManager.h>
+#include <TextureManager.h>
 
 class GameApp : public D3DApp
 {
-public:
-    struct VertexPosColor
-    {
-        DirectX::XMFLOAT3 pos;
-        DirectX::XMFLOAT4 color;
-        static const D3D11_INPUT_ELEMENT_DESC inputLayout[2];
-    };
-
-    struct ConstantBuffer
-    {
-        DirectX::XMMATRIX world;
-        DirectX::XMMATRIX view;
-        DirectX::XMMATRIX proj;
-    };
 
 public:
     GameApp(HINSTANCE hInstance, const std::wstring& windowName, int initWidth, int initHeight);
@@ -29,22 +24,21 @@ public:
     void UpdateScene(float dt);
     void DrawScene();
 
-
 private:
-    bool InitEffect();
     bool InitResource();
-
-
-
 private:
-    ComPtr<ID3D11InputLayout> m_pVertexLayout;      // 顶点输入布局
-    ComPtr<ID3D11Buffer> m_pVertexBuffer;           // 顶点缓冲区
-    ComPtr<ID3D11Buffer> m_pIndexBuffer;            // 索引缓冲区
-    ComPtr<ID3D11Buffer> m_pConstantBuffer;         // 常量缓冲区
 
-    ComPtr<ID3D11VertexShader> m_pVertexShader;     // 顶点着色器
-    ComPtr<ID3D11PixelShader> m_pPixelShader;       // 像素着色器
-    ConstantBuffer m_CBuffer;                       // 用于修改GPU常量缓冲区的变量
+    TextureManager m_TextureManager;
+    ModelManager m_ModelManager;
+
+    BasicEffect m_BasicEffect;                                  // 对象渲染特效管理
+
+    std::unique_ptr<Depth2D> m_pDepthTexture;                   // 深度缓冲区
+
+    GameObject m_sun;										    // 房屋
+    GameObject m_Ground;										// 地面
+
+    std::shared_ptr<ThirdPersonCamera> m_pCamera;				// 摄像机
 };
 
 
