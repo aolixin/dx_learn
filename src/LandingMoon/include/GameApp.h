@@ -38,10 +38,11 @@ private:
 	GameObject m_sun;
 	GameObject m_earth;
 	GameObject m_moon;
+	GameObject m_plane;
 
 	std::shared_ptr<FirstPersonCamera> m_pCamera;
 	float m_Angle = 0.0f;
-	float m_Radius = 1050.0f;
+	float m_Radius = 1000.0f;
 };
 
 

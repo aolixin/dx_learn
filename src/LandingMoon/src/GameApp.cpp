@@ -53,7 +53,7 @@ void GameApp::OnResize()
 void GameApp::UpdateScene(float dt)
 {
 	//return;
-	auto camera = std::dynamic_pointer_cast<FirstPersonCamera>(m_pCamera);
+	//auto camera = std::dynamic_pointer_cast<ThirdPersonCamera>(m_pCamera);
 
 	// 每秒旋转 45 度（顺时针）
 	m_Angle += XM_PIDIV4 * dt; // XM_PIDIV4 = π/4，即 45°
@@ -63,11 +63,33 @@ void GameApp::UpdateScene(float dt)
 	// 计算新位置（绕Y轴顺时针旋转）
 	float x = m_Radius * sinf(m_Angle);
 	float z = m_Radius * cosf(m_Angle);
-	float y = 10.0f;
+	float y = 0.0f;
 
-	// 更新摄像机位置和朝向
-	camera->SetPosition(x, y, z);
-	camera->LookAt(XMFLOAT3(x, y, z), XMFLOAT3(0, 0, 0), XMFLOAT3(0, 1, 0));
+	XMFLOAT3 earthPos(x, y, z);
+	auto& earthTransform = m_earth.GetTransform();
+	earthTransform.SetPosition(earthPos);
+	XMVECTOR earthVec = XMLoadFloat3(&earthPos);
+
+
+	auto& planeTransform = m_plane.GetTransform();
+	XMFLOAT3 planePos = planeTransform.GetPosition();
+	planePos.x = x;
+	planePos.z = z;
+	planeTransform.SetPosition(planePos);
+	
+	XMVECTOR planeVec = XMLoadFloat3(&planePos);
+
+	XMVECTOR dir = XMVector3Normalize(planeVec);  // 单位方向向量
+
+	float distance = 2.0f;
+	XMVECTOR cameraVec = XMVectorAdd(planeVec, XMVectorScale(dir, distance)); // 延长方向向量
+
+	XMFLOAT3 cameraPos;
+	XMStoreFloat3(&cameraPos, cameraVec);
+
+	cameraPos.y += 1.0f;
+	m_pCamera->SetPosition(cameraPos);
+	m_pCamera->LookAt(cameraPos, planePos, XMFLOAT3(0, 1, 0));
 
 	m_BasicEffect.SetViewMatrix(m_pCamera->GetViewMatrixXM());
 	m_BasicEffect.SetEyePos(m_pCamera->GetPosition());
@@ -99,6 +121,7 @@ void GameApp::DrawScene()
 	m_sun.Draw(m_pd3dImmediateContext.Get(), m_BasicEffect);
 	m_earth.Draw(m_pd3dImmediateContext.Get(), m_BasicEffect);
 	m_moon.Draw(m_pd3dImmediateContext.Get(), m_BasicEffect);
+	m_plane.Draw(m_pd3dImmediateContext.Get(), m_BasicEffect);
 
 	//ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 
@@ -138,6 +161,13 @@ bool GameApp::InitResource()
 	Transform& moonTransform = m_moon.GetTransform();
 	moonTransform.SetPosition(50.0f, 30.0f, -1000.0f);
 
+	pModel = m_ModelManager.CreateFromFile("Resource\\Models\\plane.obj");
+	m_plane.SetModel(pModel);
+	pModel->SetDebugObjectName("plane");
+
+	Transform& planeTransform = m_plane.GetTransform();
+	planeTransform.SetPosition(0.0f, 30.0f, -1000.0f);
+
 	// ******************
 	// 初始化摄像机
 	//
@@ -149,6 +179,11 @@ bool GameApp::InitResource()
 
 	camera->SetPosition(0.0f, 10.0f, -1100.0f);
 	camera->LookAt(camera->GetPosition(), XMFLOAT3(0, 0, 0), XMFLOAT3(0, 1, 0));
+
+	//camera->SetTarget(earthTransform.GetPosition());
+	//camera->SetDistance(10.0f);
+	//m_pCamera->SetDistanceMinMax(0.0f, 20.0f);
+	//camera->RotateX(0);
 
 	camera->SetFrustum(XM_PI / 2, AspectRatio(), 1.0f, 100000.0f);
 

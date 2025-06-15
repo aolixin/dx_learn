@@ -287,6 +287,8 @@ void ThirdPersonCamera::SetRotationY(float rad)
 void ThirdPersonCamera::SetTarget(const XMFLOAT3 & target)
 {
     m_Target = target;
+    //m_Transform.SetPosition(m_Target);
+    //m_Transform.Translate(m_Transform.GetForwardAxis(), -m_Distance);
 }
 
 void ThirdPersonCamera::SetDistance(float dist)
