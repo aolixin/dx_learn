@@ -3,7 +3,7 @@
 Open Asset Import Library (assimp)
 ---------------------------------------------------------------------------
 
-Copyright (c) 2006-2022, assimp team
+Copyright (c) 2006-2025, assimp team
 
 All rights reserved.
 
@@ -43,6 +43,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "Common/ScenePreprocessor.h"
 #include "PostProcessing/SortByPTypeProcess.h"
 #include <assimp/scene.h>
+#include <assimp/postprocess.h>
 
 using namespace std;
 using namespace Assimp;
@@ -184,13 +185,13 @@ TEST_F(SortByPTypeProcessTest, SortByPTypeStep) {
 
                 aiMesh *mesh = mScene->mMeshes[real];
 
-                EXPECT_TRUE(NULL != mesh);
+                EXPECT_TRUE(nullptr != mesh);
                 EXPECT_EQ(AI_PRIMITIVE_TYPE_FOR_N_INDICES(n + 1), mesh->mPrimitiveTypes);
-                EXPECT_TRUE(NULL != mesh->mVertices);
-                EXPECT_TRUE(NULL != mesh->mNormals);
-                EXPECT_TRUE(NULL != mesh->mTangents);
-                EXPECT_TRUE(NULL != mesh->mBitangents);
-                EXPECT_TRUE(NULL != mesh->mTextureCoords[0]);
+                EXPECT_TRUE(nullptr != mesh->mVertices);
+                EXPECT_TRUE(nullptr != mesh->mNormals);
+                EXPECT_TRUE(nullptr != mesh->mTangents);
+                EXPECT_TRUE(nullptr != mesh->mBitangents);
+                EXPECT_TRUE(nullptr != mesh->mTextureCoords[0]);
 
                 EXPECT_TRUE(mesh->mNumFaces == idx);
                 for (unsigned int f = 0; f < mesh->mNumFaces; ++f) {
@@ -201,4 +202,10 @@ TEST_F(SortByPTypeProcessTest, SortByPTypeStep) {
             }
         }
     }
+}
+
+TEST_F(SortByPTypeProcessTest, issue389327770Test) {
+    Assimp::Importer importer;
+    const aiScene *scene = importer.ReadFile(ASSIMP_TEST_MODELS_DIR "/fuzzer_data/clusterfuzz-testcase-minimized-assimp_fuzzer-4751812606885888", aiProcessPreset_TargetRealtime_Fast);
+    EXPECT_NE(nullptr, scene);
 }

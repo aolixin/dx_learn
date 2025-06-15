@@ -2,7 +2,8 @@
 
 cd src
 
-del /S /Q build\*.cso
+del /S /Q *.cso
+
 
 cmake --preset "vs2022 - amd64"
 

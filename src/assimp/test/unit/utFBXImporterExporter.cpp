@@ -3,7 +3,7 @@
 Open Asset Import Library (assimp)
 ---------------------------------------------------------------------------
 
-Copyright (c) 2006-2022, assimp team
+Copyright (c) 2006-2025, assimp team
 
 All rights reserved.
 
@@ -311,6 +311,37 @@ TEST_F(utFBXImporterExporter, sceneMetadata) {
     }
 }
 
+TEST_F(utFBXImporterExporter, importCustomAxes) {
+    // see https://github.com/assimp/assimp/issues/5494
+    Assimp::Importer importer;
+    const aiScene *scene = importer.ReadFile(ASSIMP_TEST_MODELS_DIR "/FBX/embedded_ascii/box.FBX", aiProcess_ValidateDataStructure);
+    EXPECT_NE(nullptr, scene);
+
+    // The ASCII box has customised the Up and Forward axes, verify that the RootNode transform has applied it
+    ASSERT_FALSE(scene->mRootNode->mTransformation.IsIdentity()) << "Did not apply the custom axis transform";
+
+    aiVector3D upVec{ 0, 0, 1 }; // Up is +Z
+    aiVector3D forwardVec{ 0, -1, 0 }; // Forward is -Y
+    aiVector3D rightVec{ 1, 0, 0 }; // Right is +X
+    aiMatrix4x4 mat(rightVec.x, rightVec.y, rightVec.z, 0.0f,
+            upVec.x, upVec.y, upVec.z, 0.0f,
+            forwardVec.x, forwardVec.y, forwardVec.z, 0.0f,
+            0.0f, 0.0f, 0.0f, 1.0f);
+
+    EXPECT_EQ(mat, scene->mRootNode->mTransformation);
+}
+
+TEST_F(utFBXImporterExporter, importIgnoreCustomAxes) {
+    // see https://github.com/assimp/assimp/issues/5494
+    Assimp::Importer importer;
+    importer.SetPropertyBool(AI_CONFIG_IMPORT_FBX_IGNORE_UP_DIRECTION, true);
+    const aiScene *scene = importer.ReadFile(ASSIMP_TEST_MODELS_DIR "/FBX/embedded_ascii/box.FBX", aiProcess_ValidateDataStructure);
+    EXPECT_NE(nullptr, scene);
+
+    // Verify that the RootNode transform has NOT applied the custom axes
+    EXPECT_TRUE(scene->mRootNode->mTransformation.IsIdentity());
+}
+
 TEST_F(utFBXImporterExporter, importCubesWithOutOfRangeFloat) {
     Assimp::Importer importer;
     const aiScene *scene = importer.ReadFile(ASSIMP_TEST_MODELS_DIR "/FBX/cubes_with_outofrange_float.fbx", aiProcess_ValidateDataStructure);
@@ -422,4 +453,11 @@ TEST_F(utFBXImporterExporter, importMaxPbrMaterialsSpecularGloss) {
     aiColor4D emitColor;
     ASSERT_EQ(mat->Get("$raw.3dsMax|main|emit_color", aiTextureType_NONE, 0, emitColor), aiReturn_SUCCESS);
     EXPECT_EQ(emitColor, aiColor4D(1, 0, 1, 1));
+}
+
+TEST_F(utFBXImporterExporter, importSkeletonTest) {
+    Assimp::Importer importer;
+    const aiScene *scene = importer.ReadFile(ASSIMP_TEST_MODELS_DIR "/FBX/animation_with_skeleton.fbx", aiProcess_ValidateDataStructure);
+    ASSERT_NE(nullptr, scene);
+    ASSERT_TRUE(scene->mRootNode);
 }

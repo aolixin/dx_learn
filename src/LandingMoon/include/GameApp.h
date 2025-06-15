@@ -16,29 +16,32 @@ class GameApp : public D3DApp
 {
 
 public:
-    GameApp(HINSTANCE hInstance, const std::wstring& windowName, int initWidth, int initHeight);
-    ~GameApp();
+	GameApp(HINSTANCE hInstance, const std::wstring& windowName, int initWidth, int initHeight);
+	~GameApp();
 
-    bool Init();
-    void OnResize();
-    void UpdateScene(float dt);
-    void DrawScene();
+	bool Init();
+	void OnResize();
+	void UpdateScene(float dt);
+	void DrawScene();
 
 private:
-    bool InitResource();
+	bool InitResource();
 private:
 
-    TextureManager m_TextureManager;
-    ModelManager m_ModelManager;
+	TextureManager m_TextureManager;
+	ModelManager m_ModelManager;
 
-    BasicEffect m_BasicEffect;                                  // 对象渲染特效管理
+	BasicEffect m_BasicEffect;
 
-    std::unique_ptr<Depth2D> m_pDepthTexture;                   // 深度缓冲区
+	std::unique_ptr<Depth2D> m_pDepthTexture;
 
-    GameObject m_sun;										    // 房屋
-    GameObject m_Ground;										// 地面
+	GameObject m_sun;
+	GameObject m_earth;
+	GameObject m_moon;
 
-    std::shared_ptr<ThirdPersonCamera> m_pCamera;				// 摄像机
+	std::shared_ptr<FirstPersonCamera> m_pCamera;
+	float m_Angle = 0.0f;
+	float m_Radius = 1050.0f;
 };
 
 

@@ -2,8 +2,7 @@
 Open Asset Import Library (assimp)
 ----------------------------------------------------------------------
 
-Copyright (c) 2006-2022, assimp team
-
+Copyright (c) 2006-2025, assimp team
 
 All rights reserved.
 
@@ -36,7 +35,6 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
 THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
 ----------------------------------------------------------------------
 */
 
@@ -59,14 +57,12 @@ namespace Util {
 
 // ------------------------------------------------------------------------------------------------
 // signal DOM construction error, this is always unrecoverable. Throws DeadlyImportError.
-void DOMError(const std::string& message, const Token& token)
-{
+void DOMError(const std::string& message, const Token& token) {
     throw DeadlyImportError("FBX-DOM", Util::GetTokenText(&token), message);
 }
 
 // ------------------------------------------------------------------------------------------------
-void DOMError(const std::string& message, const Element* element /*= nullptr*/)
-{
+void DOMError(const std::string& message, const Element* element /*= nullptr*/) {
     if(element) {
         DOMError(message,element->KeyToken());
     }
@@ -76,16 +72,14 @@ void DOMError(const std::string& message, const Element* element /*= nullptr*/)
 
 // ------------------------------------------------------------------------------------------------
 // print warning, do return
-void DOMWarning(const std::string& message, const Token& token)
-{
+void DOMWarning(const std::string& message, const Token& token) {
     if(DefaultLogger::get()) {
         ASSIMP_LOG_WARN("FBX-DOM", Util::GetTokenText(&token), message);
     }
 }
 
 // ------------------------------------------------------------------------------------------------
-void DOMWarning(const std::string& message, const Element* element /*= nullptr*/)
-{
+void DOMWarning(const std::string& message, const Element* element /*= nullptr*/) {
     if(element) {
         DOMWarning(message,element->KeyToken());
         return;
@@ -95,41 +89,39 @@ void DOMWarning(const std::string& message, const Element* element /*= nullptr*/
     }
 }
 
-
 // ------------------------------------------------------------------------------------------------
 // fetch a property table and the corresponding property template
 std::shared_ptr<const PropertyTable> GetPropertyTable(const Document& doc,
-    const std::string& templateName,
-    const Element &element,
-    const Scope& sc,
-    bool no_warn /*= false*/)
-{
+        const std::string& templateName,
+        const Element &element,
+        const Scope& sc,
+        bool no_warn /*= false*/) {
     const Element* const Properties70 = sc["Properties70"];
     std::shared_ptr<const PropertyTable> templateProps = std::shared_ptr<const PropertyTable>(
             static_cast<const PropertyTable *>(nullptr));
 
-    if(templateName.length()) {
+    if (templateName.length()) {
         PropertyTemplateMap::const_iterator it = doc.Templates().find(templateName);
         if(it != doc.Templates().end()) {
             templateProps = (*it).second;
         }
     }
 
-    if(!Properties70 || !Properties70->Compound()) {
+    if (!Properties70 || !Properties70->Compound()) {
         if(!no_warn) {
             DOMWarning("property table (Properties70) not found",&element);
         }
         if(templateProps) {
             return templateProps;
-        }
-        else {
+        } else {
             return std::make_shared<const PropertyTable>();
         }
     }
     return std::make_shared<const PropertyTable>(*Properties70,templateProps);
 }
+
 } // !Util
 } // !FBX
 } // !Assimp
 
-#endif
+#endif // ASSIMP_BUILD_NO_FBX_IMPORTER

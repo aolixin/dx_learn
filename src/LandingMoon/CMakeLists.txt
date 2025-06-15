@@ -98,7 +98,7 @@ add_custom_command(TARGET LandingMoon POST_BUILD
 add_custom_command(TARGET LandingMoon POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${RESOURCE_DIR}"
-        "${CMAKE_CURRENT_BINARY_DIR}"
+        "${CMAKE_CURRENT_BINARY_DIR}/Resource"
 )
 
 

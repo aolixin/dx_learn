@@ -2,7 +2,7 @@
 Open Asset Import Library (assimp)
 ----------------------------------------------------------------------
 
-Copyright (c) 2006-2022, assimp team
+Copyright (c) 2006-2025, assimp team
 
 All rights reserved.
 
@@ -60,6 +60,7 @@ struct ImportSettings {
             readLights(true),
             readAnimations(true),
             readWeights(true),
+            useSkeleton(false),
             preservePivots(true),
             optimizeEmptyAnimationCurves(true),
             useLegacyEmbeddedTextureNaming(false),
@@ -112,6 +113,11 @@ struct ImportSettings {
      *  Default value is true. */
     bool readWeights;
 
+    /** will convert all animation data into a skeleton (experimental)
+     *  Default value is false.
+     */
+    bool useSkeleton;
+
     /** preserve transformation pivots and offsets. Since these can
      *  not directly be represented in assimp, additional dummy
      *  nodes will be generated. Note that settings this to false
@@ -150,6 +156,9 @@ struct ImportSettings {
     /** Set to true to perform a conversion from cm to meter after the import
     */
     bool convertToMeters;
+
+    // Set to true to ignore the axis configuration in the file
+    bool ignoreUpDirection = false;
 };
 
 } // namespace FBX

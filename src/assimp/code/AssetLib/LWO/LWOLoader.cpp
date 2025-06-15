@@ -3,9 +3,7 @@
 Open Asset Import Library (assimp)
 ---------------------------------------------------------------------------
 
-Copyright (c) 2006-2022, assimp team
-
-
+Copyright (c) 2006-2025, assimp team
 
 All rights reserved.
 
@@ -48,9 +46,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef ASSIMP_BUILD_NO_LWO_IMPORTER
 
 // internal headers
-#include "AssetLib/LWO/LWOLoader.h"
+#include "LWOLoader.h"
 #include "PostProcessing/ConvertToLHProcess.h"
 #include "PostProcessing/ProcessHelper.h"
+#include "Geometry/GeometryUtils.h"
 
 #include <assimp/ByteSwapper.h>
 #include <assimp/SGSpatialSort.h>
@@ -100,14 +99,12 @@ LWOImporter::LWOImporter() :
 
 // ------------------------------------------------------------------------------------------------
 // Destructor, private as well
-LWOImporter::~LWOImporter() {
-    // empty
-}
+LWOImporter::~LWOImporter() = default;
 
 // ------------------------------------------------------------------------------------------------
 // Returns whether the class can handle the format of the given file.
 bool LWOImporter::CanRead(const std::string &file, IOSystem *pIOHandler, bool /*checkSig*/) const {
-    static const uint32_t tokens[] = {
+    static constexpr uint32_t tokens[] = {
         AI_LWO_FOURCC_LWOB,
         AI_LWO_FOURCC_LWO2,
         AI_LWO_FOURCC_LXOB
@@ -137,7 +134,7 @@ void LWOImporter::InternReadFile(const std::string &pFile,
     std::unique_ptr<IOStream> file(pIOHandler->Open(pFile, "rb"));
 
     // Check whether we can read from the file
-    if (file.get() == nullptr) {
+    if (file == nullptr) {
         throw DeadlyImportError("Failed to open LWO file ", pFile, ".");
     }
 
@@ -180,7 +177,7 @@ void LWOImporter::InternReadFile(const std::string &pFile,
     mLayers->push_back(Layer());
     mCurLayer = &mLayers->back();
     mCurLayer->mName = "<LWODefault>";
-    mCurLayer->mIndex = (uint16_t) -1;
+    mCurLayer->mIndex = 1;
 
     // old lightwave file format (prior to v6)
     mIsLWO2 = false;
@@ -217,7 +214,7 @@ void LWOImporter::InternReadFile(const std::string &pFile,
         } else {
             mIsLWO2 = true;
         }
-        
+
         LoadLWO2File();
 
         // The newer lightwave format allows the user to configure the
@@ -287,7 +284,7 @@ void LWOImporter::InternReadFile(const std::string &pFile,
             if (UINT_MAX == iDefaultSurface) {
                 pSorted.erase(pSorted.end() - 1);
             }
-            for (unsigned int p = 0, j = 0; j < mSurfaces->size(); ++j) {
+            for (unsigned int j = 0; j < mSurfaces->size(); ++j) {
                 SortedRep &sorted = pSorted[j];
                 if (sorted.empty())
                     continue;
@@ -400,14 +397,6 @@ void LWOImporter::InternReadFile(const std::string &pFile,
                             pvVC[w]++;
                         }
 
-#if 0
-                        // process vertex weights. We can't properly reconstruct the whole skeleton for now,
-                        // but we can create dummy bones for all weight channels which we have.
-                        for (unsigned int w = 0; w < layer.mWeightChannels.size();++w)
-                        {
-                        }
-#endif
-
                         face.mIndices[q] = vert;
                     }
                     pf->mIndices = face.mIndices;
@@ -425,14 +414,13 @@ void LWOImporter::InternReadFile(const std::string &pFile,
                 } else {
                     ASSIMP_LOG_VERBOSE_DEBUG("LWO2: No need to compute normals, they're already there");
                 }
-                ++p;
             }
         }
 
         // Generate nodes to render the mesh. Store the source layer in the mParent member of the nodes
         unsigned int num = static_cast<unsigned int>(apcMeshes.size() - meshStart);
         if (layer.mName != "<LWODefault>" || num > 0) {
-            aiNode *pcNode = new aiNode();
+            std::unique_ptr<aiNode> pcNode(new aiNode());
             pcNode->mName.Set(layer.mName);
             pcNode->mParent = (aiNode *)&layer;
             pcNode->mNumMeshes = num;
@@ -442,7 +430,8 @@ void LWOImporter::InternReadFile(const std::string &pFile,
                 for (unsigned int p = 0; p < pcNode->mNumMeshes; ++p)
                     pcNode->mMeshes[p] = p + meshStart;
             }
-            apcNodes[layer.mIndex] = pcNode;
+            ASSIMP_LOG_DEBUG("insert apcNode for layer ", layer.mIndex, " \"", layer.mName, "\"");
+            apcNodes[layer.mIndex] = pcNode.release();
         }
     }
 
@@ -567,6 +556,7 @@ void LWOImporter::ComputeNormals(aiMesh *mesh, const std::vector<unsigned int> &
             }
         }
     }
+    GeometryUtils::normalizeVectorArray(mesh->mNormals, mesh->mNormals, mesh->mNumVertices);
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -575,40 +565,64 @@ void LWOImporter::GenerateNodeGraph(std::map<uint16_t, aiNode *> &apcNodes) {
     aiNode *root = mScene->mRootNode = new aiNode();
     root->mName.Set("<LWORoot>");
 
-    //Set parent of all children, inserting pivots
-    std::map<uint16_t, aiNode *> mapPivot;
-    for (auto itapcNodes = apcNodes.begin(); itapcNodes != apcNodes.end(); ++itapcNodes) {
-
-        //Get the parent index
-        LWO::Layer *nodeLayer = (LWO::Layer *)(itapcNodes->second->mParent);
-        uint16_t parentIndex = nodeLayer->mParent;
-
-        //Create pivot node, store it into the pivot map, and set the parent as the pivot
-        aiNode *pivotNode = new aiNode();
-        pivotNode->mName.Set("Pivot-" + std::string(itapcNodes->second->mName.data));
-        itapcNodes->second->mParent = pivotNode;
-
-        //Look for the parent node to attach the pivot to
-        if (apcNodes.find(parentIndex) != apcNodes.end()) {
-            pivotNode->mParent = apcNodes[parentIndex];
-        } else {
-            //If not, attach to the root node
-            pivotNode->mParent = root;
-        }
-
-        //Set the node and the pivot node transformation
-        itapcNodes->second->mTransformation.a4 = -nodeLayer->mPivot.x;
-        itapcNodes->second->mTransformation.b4 = -nodeLayer->mPivot.y;
-        itapcNodes->second->mTransformation.c4 = -nodeLayer->mPivot.z;
-        pivotNode->mTransformation.a4 = nodeLayer->mPivot.x;
-        pivotNode->mTransformation.b4 = nodeLayer->mPivot.y;
-        pivotNode->mTransformation.c4 = nodeLayer->mPivot.z;
-        mapPivot[-(itapcNodes->first + 2)] = pivotNode;
+    ASSIMP_LOG_DEBUG("apcNodes initial size: ", apcNodes.size());
+    if (!apcNodes.empty()) {
+        ASSIMP_LOG_DEBUG("first apcNode is: ", apcNodes.begin()->first, " \"", apcNodes.begin()->second->mName.C_Str(), "\"");
     }
 
-    //Merge pivot map into node map
-    for (auto itMapPivot = mapPivot.begin(); itMapPivot != mapPivot.end(); ++itMapPivot) {
-        apcNodes[itMapPivot->first] = itMapPivot->second;
+    //Set parent of all children, inserting pivots
+    {
+        std::map<uint16_t, aiNode *> mapPivot;
+        for (auto itapcNodes = apcNodes.begin(); itapcNodes != apcNodes.end(); ++itapcNodes) {
+
+            //Get the parent index
+            LWO::Layer *nodeLayer = (LWO::Layer *)(itapcNodes->second->mParent);
+            uint16_t parentIndex = nodeLayer->mParent;
+
+            //Create pivot node, store it into the pivot map, and set the parent as the pivot
+            std::unique_ptr<aiNode> pivotNode(new aiNode());
+            pivotNode->mName.Set("Pivot-" + std::string(itapcNodes->second->mName.data));
+            itapcNodes->second->mParent = pivotNode.get();
+
+            //Look for the parent node to attach the pivot to
+            if (apcNodes.find(parentIndex) != apcNodes.end()) {
+                pivotNode->mParent = apcNodes[parentIndex];
+            } else {
+                //If not, attach to the root node
+                pivotNode->mParent = root;
+            }
+
+            //Set the node and the pivot node transformation
+            itapcNodes->second->mTransformation.a4 = -nodeLayer->mPivot.x;
+            itapcNodes->second->mTransformation.b4 = -nodeLayer->mPivot.y;
+            itapcNodes->second->mTransformation.c4 = -nodeLayer->mPivot.z;
+            pivotNode->mTransformation.a4 = nodeLayer->mPivot.x;
+            pivotNode->mTransformation.b4 = nodeLayer->mPivot.y;
+            pivotNode->mTransformation.c4 = nodeLayer->mPivot.z;
+            uint16_t pivotNodeId = static_cast<uint16_t>(-(itapcNodes->first + 2));
+            ASSIMP_LOG_DEBUG("insert pivot node: ", pivotNodeId);
+            auto oldNodeIt = mapPivot.find(pivotNodeId);
+            if (oldNodeIt != mapPivot.end()) {
+                ASSIMP_LOG_ERROR("attempted to insert pivot node which already exists in pivot map ", pivotNodeId, " \"", pivotNode->mName.C_Str(), "\"");
+            } else {
+                mapPivot.emplace(pivotNodeId, pivotNode.release());
+            }
+        }
+
+        ASSIMP_LOG_DEBUG("pivot nodes: ", mapPivot.size());
+        //Merge pivot map into node map
+        for (auto itMapPivot = mapPivot.begin(); itMapPivot != mapPivot.end();) {
+            uint16_t pivotNodeId = itMapPivot->first;
+            auto oldApcNodeIt = apcNodes.find(pivotNodeId);
+            if (oldApcNodeIt != apcNodes.end()) {
+                ASSIMP_LOG_ERROR("attempted to insert pivot node which already exists in apc nodes ", pivotNodeId, " \"", itMapPivot->second->mName.C_Str(), "\"");
+            } else {
+                apcNodes.emplace(pivotNodeId, itMapPivot->second);
+            }
+            itMapPivot->second = nullptr;
+            itMapPivot = mapPivot.erase(itMapPivot);
+        }
+        ASSIMP_LOG_DEBUG("total nodes: ", apcNodes.size());
     }
 
     //Set children of all parents
@@ -630,8 +644,15 @@ void LWOImporter::GenerateNodeGraph(std::map<uint16_t, aiNode *> &apcNodes) {
         }
     }
 
-    if (!mScene->mRootNode->mNumChildren)
+    if (!mScene->mRootNode->mNumChildren) {
+        ASSIMP_LOG_DEBUG("All apcNodes:");
+        for (auto nodeIt = apcNodes.begin(); nodeIt != apcNodes.end(); ) {
+            ASSIMP_LOG_DEBUG("Node ", nodeIt->first, " \"", nodeIt->second->mName.C_Str(), "\"");
+            nodeIt->second = nullptr;
+            nodeIt = apcNodes.erase(nodeIt);
+        }
         throw DeadlyImportError("LWO: Unable to build a valid node graph");
+    }
 
     // Remove a single root node with no meshes assigned to it ...
     if (1 == mScene->mRootNode->mNumChildren) {
@@ -1098,7 +1119,7 @@ void LWOImporter::LoadLWO2VertexMap(unsigned int length, bool perPoly) {
 void LWOImporter::LoadLWO2Clip(unsigned int length) {
     AI_LWO_VALIDATE_CHUNK_LENGTH(length, CLIP, 10);
 
-    mClips.push_back(LWO::Clip());
+    mClips.emplace_back();
     LWO::Clip &clip = mClips.back();
 
     // first - get the index of the clip
@@ -1168,7 +1189,7 @@ void LWOImporter::LoadLWO2Clip(unsigned int length) {
 void LWOImporter::LoadLWO3Clip(unsigned int length) {
     AI_LWO_VALIDATE_CHUNK_LENGTH(length, CLIP, 12);
 
-    mClips.push_back(LWO::Clip());
+    mClips.emplace_back();
     LWO::Clip &clip = mClips.back();
 
     // first - get the index of the clip
@@ -1241,7 +1262,7 @@ void LWOImporter::LoadLWO2Envelope(unsigned int length) {
     LE_NCONST uint8_t *const end = mFileBuffer + length;
     AI_LWO_VALIDATE_CHUNK_LENGTH(length, ENVL, 4);
 
-    mEnvelopes.push_back(LWO::Envelope());
+    mEnvelopes.emplace_back();
     LWO::Envelope &envelope = mEnvelopes.back();
 
     // Get the index of the envelope
@@ -1293,7 +1314,7 @@ void LWOImporter::LoadLWO2Envelope(unsigned int length) {
             case AI_LWO_KEY: {
                 AI_LWO_VALIDATE_CHUNK_LENGTH(head.length, KEY, 8);
 
-                envelope.keys.push_back(LWO::Key());
+                envelope.keys.emplace_back();
                 LWO::Key &key = envelope.keys.back();
 
                 key.time = GetF4();
@@ -1349,7 +1370,7 @@ void LWOImporter::LoadLWO3Envelope(unsigned int length) {
     LE_NCONST uint8_t *const end = mFileBuffer + length;
     AI_LWO_VALIDATE_CHUNK_LENGTH(length, ENVL, 4);
 
-    mEnvelopes.push_back(LWO::Envelope());
+    mEnvelopes.emplace_back();
     LWO::Envelope &envelope = mEnvelopes.back();
 
     // Get the index of the envelope
@@ -1391,7 +1412,7 @@ void LWOImporter::LoadLWO3Envelope(unsigned int length) {
             case AI_LWO_KEY: {
                 AI_LWO_VALIDATE_CHUNK_LENGTH(head.length, KEY, 10);
 
-                envelope.keys.push_back(LWO::Key());
+                envelope.keys.emplace_back();
                 LWO::Key &key = envelope.keys.back();
 
                 key.time = GetF4();
@@ -1465,7 +1486,6 @@ void LWOImporter::LoadLWO2File() {
 
         if (mFileBuffer + head.length > end) {
             throw DeadlyImportError("LWO2: Chunk length points behind the file");
-            break;
         }
         uint8_t *const next = mFileBuffer + head.length;
         mFileBuffer += bufOffset;
@@ -1541,6 +1561,7 @@ void LWOImporter::LoadLWO2File() {
                     break;
                 }
                 // --- intentionally no break here
+                // fallthrough
             case AI_LWO_VMAP: {
                 if (skip)
                     break;
