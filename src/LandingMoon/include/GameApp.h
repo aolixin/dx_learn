@@ -11,6 +11,7 @@
 #include <Buffer.h>
 #include <ModelManager.h>
 #include <TextureManager.h>
+#include <windowsx.h>
 
 class GameApp : public D3DApp
 {
@@ -23,6 +24,8 @@ public:
 	void OnResize();
 	void UpdateScene(float dt);
 	void DrawScene();
+
+	LRESULT MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) override;
 
 private:
 	bool InitResource();
@@ -42,7 +45,14 @@ private:
 
 	std::shared_ptr<FirstPersonCamera> m_pCamera;
 	float m_Angle = 0.0f;
-	float m_Radius = 1000.0f;
+	float m_sunOrbitRadius = 1000.0f;
+	float m_earthRadius = 30.0f;
+
+	int prevMouseX = -1;  // 初始为无效值，表示尚未记录
+	int prevMouseY = -1;
+
+	bool m_Keys[256] = { false };
+
 };
 
 

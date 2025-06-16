@@ -56,40 +56,91 @@ void GameApp::UpdateScene(float dt)
 	//auto camera = std::dynamic_pointer_cast<ThirdPersonCamera>(m_pCamera);
 
 	// 每秒旋转 45 度（顺时针）
-	m_Angle += XM_PIDIV4 * dt; // XM_PIDIV4 = π/4，即 45°
+	auto deltaAngle = XM_PIDIV4 / 4 * dt;
+	m_Angle += deltaAngle; // XM_PIDIV4 = π/4，即 45°
 	if (m_Angle > XM_2PI)
 		m_Angle -= XM_2PI;
 
-	// 计算新位置（绕Y轴顺时针旋转）
-	float x = m_Radius * sinf(m_Angle);
-	float z = m_Radius * cosf(m_Angle);
+	// 地球公转
+	float x = m_sunOrbitRadius * sinf(m_Angle);
+	float z = m_sunOrbitRadius * cosf(m_Angle);
+
 	float y = 0.0f;
 
-	XMFLOAT3 earthPos(x, y, z);
-	auto& earthTransform = m_earth.GetTransform();
-	earthTransform.SetPosition(earthPos);
-	XMVECTOR earthVec = XMLoadFloat3(&earthPos);
+	XMFLOAT3 newEarthPos(x, y, z);
+	XMVECTOR newEarthVec = XMLoadFloat3(&newEarthPos);
+
+	Transform& earthTransform = m_earth.GetTransform();
+	XMFLOAT3 oldEarthPos = earthTransform.GetPosition();
+	XMVECTOR oldEarthVec = XMLoadFloat3(&oldEarthPos);
+
+	auto deltaEarth = newEarthVec - oldEarthVec;
+	earthTransform.SetPosition(newEarthPos);
 
 
 	auto& planeTransform = m_plane.GetTransform();
-	XMFLOAT3 planePos = planeTransform.GetPosition();
-	planePos.x = x;
-	planePos.z = z;
-	planeTransform.SetPosition(planePos);
-	
+	XMFLOAT3 oldPlanePos = planeTransform.GetPosition();
+	XMVECTOR oldPlaneVec = XMLoadFloat3(&oldPlanePos);
+
+	XMVECTOR newPlaneVec = oldPlaneVec + deltaEarth;
+	XMFLOAT3 newPlanePos;
+	XMStoreFloat3(&newPlanePos, newPlaneVec);
+	planeTransform.SetPosition(newPlanePos);
+
+
+
+	// plane 移动
+
+	XMVECTOR right = planeTransform.GetRightAxisXM();
+	XMVECTOR earth2plane = newPlaneVec - newEarthVec;
+	XMVECTOR forward = XMVector3Normalize(XMVector3Cross(right, earth2plane));  // 上方向
+
+	XMVECTOR moveDir = XMVectorZero();
+	if (m_Keys['W'])
+		moveDir += forward;
+	if (m_Keys['S'])
+		moveDir -= forward;
+	if (m_Keys['A'])
+		moveDir -= right;
+	if (m_Keys['D'])
+		moveDir += right;
+
+	float moveSpeed = 10.0f;
+	if (!XMVector3Equal(moveDir, XMVectorZero()))
+	{
+		moveDir = XMVector3Normalize(moveDir);
+		auto planeVec = newPlaneVec + moveDir * moveSpeed * dt;
+		XMFLOAT3 planePos;
+
+		XMStoreFloat3(&planePos, planeVec);
+
+		planeTransform.SetPosition(planePos);
+	}
+
+	// plane 紧贴地球
+	newPlanePos = planeTransform.GetPosition();
+	newPlaneVec = XMLoadFloat3(&newPlanePos);
+	earth2plane = newPlaneVec - newEarthVec;
+	earth2plane = XMVector3Normalize(earth2plane);
+	newPlaneVec = newEarthVec + earth2plane * m_earthRadius;
+	XMStoreFloat3(&newPlanePos, newPlaneVec);
+	planeTransform.SetPosition(newPlanePos);
+
+	// 摄像机
+	auto planePos = planeTransform.GetPosition();
 	XMVECTOR planeVec = XMLoadFloat3(&planePos);
 
-	XMVECTOR dir = XMVector3Normalize(planeVec);  // 单位方向向量
+	float distance = 3.0f;
+	//XMVECTOR cameraVec = XMVectorAdd(planeVec, XMVectorScale(dir, distance));
 
-	float distance = 2.0f;
-	XMVECTOR cameraVec = XMVectorAdd(planeVec, XMVectorScale(dir, distance)); // 延长方向向量
+	XMVECTOR cameraVec = planeTransform.GetForwardAxisXM() * -distance + planeVec;
 
 	XMFLOAT3 cameraPos;
 	XMStoreFloat3(&cameraPos, cameraVec);
 
 	cameraPos.y += 1.0f;
 	m_pCamera->SetPosition(cameraPos);
-	m_pCamera->LookAt(cameraPos, planePos, XMFLOAT3(0, 1, 0));
+	m_pCamera->LookAt(cameraPos, newPlanePos, XMFLOAT3(0, 1, 0));
 
 	m_BasicEffect.SetViewMatrix(m_pCamera->GetViewMatrixXM());
 	m_BasicEffect.SetEyePos(m_pCamera->GetPosition());
@@ -213,3 +264,71 @@ bool GameApp::InitResource()
 }
 
 
+
+
+LRESULT GameApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+	D3DApp::MsgProc(hwnd, msg, wParam, lParam);
+
+	switch (msg)
+	{
+	case WM_KEYDOWN:
+		m_Keys[wParam] = true;
+		if (wParam == VK_ESCAPE)
+			PostQuitMessage(0);
+		break;
+
+	case WM_KEYUP:
+		m_Keys[wParam] = false;
+		break;
+
+	case WM_MOUSEMOVE:
+	{
+		int xPos = GET_X_LPARAM(lParam);
+		int yPos = GET_Y_LPARAM(lParam);
+
+		if (prevMouseX >= 0 && prevMouseY >= 0) {
+			int deltaX = xPos - prevMouseX;
+			int deltaY = yPos - prevMouseY;
+
+			// 根据 deltaX 旋转摄像机（假设RotateY参数单位是弧度）
+			float rotateAmountY = deltaX * 0.01f; // 灵敏度因子，可调
+			float rotateAmountX = deltaY * 0.01f;
+
+			//m_pCamera->RotateY(rotateAmountY);
+			//m_pCamera->Pitch(rotateAmountX);
+			auto& planeTransform = m_plane.GetTransform();
+			XMFLOAT3 rotation = planeTransform.GetRotation();
+			// 将绕x轴旋转弧度限制在[-7pi/18, 7pi/18]之间
+			//rotation.x += rotateAmountX;
+			if (rotation.x > XM_PI * 7 / 18)
+				rotation.x = XM_PI * 7 / 18;
+			else if (rotation.x < -XM_PI * 7 / 18)
+				rotation.x = -XM_PI * 7 / 18;
+
+			rotation.y = XMScalarModAngle(rotation.y + rotateAmountY);
+
+			planeTransform.SetRotation(rotation);
+		}
+
+		prevMouseX = xPos;
+		prevMouseY = yPos;
+
+		break;
+	}
+
+	case WM_LBUTTONDOWN:
+		// 左键按下
+		break;
+
+	case WM_RBUTTONDOWN:
+		// 右键按下
+		break;
+
+	case WM_DESTROY:
+		PostQuitMessage(0);
+		break;
+
+	}
+
+	return DefWindowProc(hwnd, msg, wParam, lParam);
+}

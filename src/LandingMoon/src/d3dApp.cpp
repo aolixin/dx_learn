@@ -132,10 +132,9 @@ void D3DApp::OnResize()
     m_FrameCount = 0;
 }
 
+
 LRESULT D3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-    //if (ImGui_ImplWin32_WndProcHandler(m_hMainWnd, msg, wParam, lParam))
-    //    return true;
 
     switch (msg) {
         // WM_ACTIVATE is sent when the window is activated or deactivated.
