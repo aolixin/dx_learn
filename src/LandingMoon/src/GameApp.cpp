@@ -49,15 +49,10 @@ void GameApp::OnResize()
 	}
 }
 
-
-void GameApp::UpdateScene(float dt)
-{
-	//return;
-	//auto camera = std::dynamic_pointer_cast<ThirdPersonCamera>(m_pCamera);
-
+void GameApp::EarthRevolution(float dt) {
 	// 每秒旋转 45 度（顺时针）
 	auto deltaAngle = XM_PIDIV4 / 4 * dt;
-	m_Angle += deltaAngle; // XM_PIDIV4 = π/4，即 45°
+	m_Angle += deltaAngle;
 	if (m_Angle > XM_2PI)
 		m_Angle -= XM_2PI;
 
@@ -67,12 +62,102 @@ void GameApp::UpdateScene(float dt)
 
 	float y = 0.0f;
 
-	XMFLOAT3 newEarthPos(x, y, z);
-	XMVECTOR newEarthVec = XMLoadFloat3(&newEarthPos);
 
 	Transform& earthTransform = m_earth.GetTransform();
 	XMFLOAT3 oldEarthPos = earthTransform.GetPosition();
 	XMVECTOR oldEarthVec = XMLoadFloat3(&oldEarthPos);
+
+	XMFLOAT3 newEarthPos(x, y, z);
+	XMVECTOR newEarthVec = XMLoadFloat3(&newEarthPos);
+
+	auto deltaEarth = newEarthVec - oldEarthVec;
+	earthTransform.SetPosition(newEarthPos);
+
+
+	auto& planeTransform = m_plane.GetTransform();
+	XMFLOAT3 oldPlanePos = planeTransform.GetPosition();
+	XMVECTOR oldPlaneVec = XMLoadFloat3(&oldPlanePos);
+
+	XMVECTOR newPlaneVec = oldPlaneVec + deltaEarth;
+	XMFLOAT3 newPlanePos;
+	XMStoreFloat3(&newPlanePos, newPlaneVec);
+	planeTransform.SetPosition(newPlanePos);
+}
+
+void GameApp::PlaneMove(float dt) {
+
+	auto& earthTransform = m_earth.GetTransform();
+	auto& planeTransform = m_plane.GetTransform();
+
+	auto earthPos = earthTransform.GetPosition();
+	XMVECTOR earthVec = XMLoadFloat3(&earthPos);
+
+	auto planePos = planeTransform.GetPosition();
+	XMVECTOR planeVec = XMLoadFloat3(&planePos);
+
+	XMVECTOR right = planeTransform.GetRightAxisXM();
+	XMVECTOR earth2plane = planeVec - earthVec;
+	XMVECTOR forward = planeTransform.GetForwardAxisXM();
+
+
+	XMVECTOR moveDir = XMVectorZero();
+	if (m_Keys['W'])
+		moveDir += forward;
+	if (m_Keys['S'])
+		moveDir -= forward;
+	if (m_Keys['A'])
+		moveDir -= right;
+	if (m_Keys['D'])
+		moveDir += right;
+
+	float moveSpeed = 10.0f;
+	if (!XMVector3Equal(moveDir, XMVectorZero()))
+	{
+		XMVECTOR fromVec = XMVector3Normalize(planeVec - earthVec);
+
+		planeVec = planeVec + moveDir * moveSpeed * dt;
+		XMStoreFloat3(&planePos, planeVec);
+
+		XMVECTOR toVec = XMVector3Normalize(planeVec - earthVec);
+
+		// 旋转轴
+		XMVECTOR axis = XMVector3Normalize(XMVector3Cross(fromVec, toVec));
+		// 旋转角度
+		float angle = XMVectorGetX(XMVector3AngleBetweenVectors(fromVec, toVec));
+
+		planeTransform.RotateAroundXM(earthPos, axis
+			, angle
+		);
+	}
+}
+
+
+void GameApp::UpdateScene(float dt)
+{
+
+	// 每秒旋转 45 度（顺时针）
+	auto deltaAngle = XM_PIDIV4 / 4 * dt;
+	m_Angle += deltaAngle;
+	if (m_Angle > XM_2PI)
+		m_Angle -= XM_2PI;
+
+	// 地球公转
+	float x = m_sunOrbitRadius * sinf(m_Angle);
+	float z = m_sunOrbitRadius * cosf(m_Angle);
+
+	float y = 0.0f;
+
+
+
+	Transform& earthTransform = m_earth.GetTransform();
+	XMFLOAT3 oldEarthPos = earthTransform.GetPosition();
+	XMVECTOR oldEarthVec = XMLoadFloat3(&oldEarthPos);
+
+	XMFLOAT3 newEarthPos(x, y, z);
+	XMVECTOR newEarthVec = XMLoadFloat3(&newEarthPos);
+
+	//XMFLOAT3 newEarthPos = oldEarthPos;
+	//XMVECTOR newEarthVec = oldEarthVec;
 
 	auto deltaEarth = newEarthVec - oldEarthVec;
 	earthTransform.SetPosition(newEarthPos);
@@ -93,7 +178,9 @@ void GameApp::UpdateScene(float dt)
 
 	XMVECTOR right = planeTransform.GetRightAxisXM();
 	XMVECTOR earth2plane = newPlaneVec - newEarthVec;
-	XMVECTOR forward = XMVector3Normalize(XMVector3Cross(right, earth2plane));  // 上方向
+	//XMVECTOR forward = XMVector3Normalize(XMVector3Cross(right, earth2plane));
+	XMVECTOR forward = planeTransform.GetForwardAxisXM();
+
 
 	XMVECTOR moveDir = XMVectorZero();
 	if (m_Keys['W'])
@@ -108,23 +195,26 @@ void GameApp::UpdateScene(float dt)
 	float moveSpeed = 10.0f;
 	if (!XMVector3Equal(moveDir, XMVectorZero()))
 	{
-		moveDir = XMVector3Normalize(moveDir);
 		auto planeVec = newPlaneVec + moveDir * moveSpeed * dt;
 		XMFLOAT3 planePos;
 
 		XMStoreFloat3(&planePos, planeVec);
 
-		planeTransform.SetPosition(planePos);
+		//planeTransform.SetPosition(planePos);
+		XMVECTOR earthVec = XMLoadFloat3(&newEarthPos);
+		XMVECTOR fromVec = XMVector3Normalize(newPlaneVec - earthVec);
+		XMVECTOR toVec = XMVector3Normalize(planeVec - earthVec);
+
+		// 旋转轴
+		XMVECTOR rotationAxis = XMVector3Normalize(XMVector3Cross(fromVec, toVec));
+		XMFLOAT3 axis;
+		XMStoreFloat3(&axis, rotationAxis);
+		// 旋转角度
+		float rotationAngle = XMVectorGetX(XMVector3AngleBetweenVectors(fromVec, toVec));
+
+		planeTransform.RotateAround(newEarthPos, axis, rotationAngle);
 	}
 
-	// plane 紧贴地球
-	newPlanePos = planeTransform.GetPosition();
-	newPlaneVec = XMLoadFloat3(&newPlanePos);
-	earth2plane = newPlaneVec - newEarthVec;
-	earth2plane = XMVector3Normalize(earth2plane);
-	newPlaneVec = newEarthVec + earth2plane * m_earthRadius;
-	XMStoreFloat3(&newPlanePos, newPlaneVec);
-	planeTransform.SetPosition(newPlanePos);
 
 	// 摄像机
 	auto planePos = planeTransform.GetPosition();
@@ -134,13 +224,24 @@ void GameApp::UpdateScene(float dt)
 	//XMVECTOR cameraVec = XMVectorAdd(planeVec, XMVectorScale(dir, distance));
 
 	XMVECTOR cameraVec = planeTransform.GetForwardAxisXM() * -distance + planeVec;
+	//cameraVec += planeTransform.GetUpAxisXM();
 
 	XMFLOAT3 cameraPos;
 	XMStoreFloat3(&cameraPos, cameraVec);
 
-	cameraPos.y += 1.0f;
-	m_pCamera->SetPosition(cameraPos);
-	m_pCamera->LookAt(cameraPos, newPlanePos, XMFLOAT3(0, 1, 0));
+	//m_pCamera->SetPosition(cameraPos);
+	XMVECTOR planeRightVec = planeTransform.GetRightAxisXM();
+	XMVECTOR cameraToPlane = XMVector3Normalize(planeVec - cameraVec);
+	XMVECTOR cameraUpVec = XMVector3Normalize(XMVector3Cross(cameraToPlane, planeRightVec));
+	XMFLOAT3 cameraUp;
+	XMStoreFloat3(&cameraUp, cameraUpVec);
+	m_pCamera->LookAt(cameraPos, planeTransform.GetPosition(), cameraUp);
+	if (this->pitch != 0.0f) {
+		Transform& cameraTransform = m_pCamera->GetTransform();
+		XMFLOAT3 planeRight;
+		XMStoreFloat3(&planeRight, planeRightVec);
+		cameraTransform.RotateAround(planeTransform.GetPosition(), planeRight, pitch);
+	}
 
 	m_BasicEffect.SetViewMatrix(m_pCamera->GetViewMatrixXM());
 	m_BasicEffect.SetEyePos(m_pCamera->GetPosition());
@@ -290,24 +391,14 @@ LRESULT GameApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 			int deltaX = xPos - prevMouseX;
 			int deltaY = yPos - prevMouseY;
 
-			// 根据 deltaX 旋转摄像机（假设RotateY参数单位是弧度）
-			float rotateAmountY = deltaX * 0.01f; // 灵敏度因子，可调
+			float rotateAmountY = deltaX * 0.01f;
 			float rotateAmountX = deltaY * 0.01f;
+			this->pitch += rotateAmountX;
 
-			//m_pCamera->RotateY(rotateAmountY);
-			//m_pCamera->Pitch(rotateAmountX);
 			auto& planeTransform = m_plane.GetTransform();
-			XMFLOAT3 rotation = planeTransform.GetRotation();
-			// 将绕x轴旋转弧度限制在[-7pi/18, 7pi/18]之间
-			//rotation.x += rotateAmountX;
-			if (rotation.x > XM_PI * 7 / 18)
-				rotation.x = XM_PI * 7 / 18;
-			else if (rotation.x < -XM_PI * 7 / 18)
-				rotation.x = -XM_PI * 7 / 18;
 
-			rotation.y = XMScalarModAngle(rotation.y + rotateAmountY);
 
-			planeTransform.SetRotation(rotation);
+			planeTransform.RotateAround(m_earth.GetTransform().GetPosition(), planeTransform.GetUpAxis(), rotateAmountY);
 		}
 
 		prevMouseX = xPos;

@@ -202,6 +202,11 @@ void FirstPersonCamera::RotateY(float rad)
     m_Transform.SetRotation(rotation);
 }
 
+Transform& FirstPersonCamera::GetTransform()
+{
+    return m_Transform;
+}
+
 
 
 // ******************

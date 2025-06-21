@@ -25,6 +25,9 @@ public:
 	void UpdateScene(float dt);
 	void DrawScene();
 
+	void EarthRevolution(float dt);
+	void PlaneMove(float dt);
+
 	LRESULT MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) override;
 
 private:
@@ -50,6 +53,8 @@ private:
 
 	int prevMouseX = -1;  // 初始为无效值，表示尚未记录
 	int prevMouseY = -1;
+
+	float pitch = 0.0f;
 
 	bool m_Keys[256] = { false };
 

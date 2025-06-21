@@ -118,6 +118,7 @@ public:
     // 正rad值向右观察
     // 负rad值向左观察
     void RotateY(float rad);
+    Transform& GetTransform();
 };
 
 class ThirdPersonCamera : public Camera
