@@ -17,6 +17,16 @@ class GameApp : public D3DApp
 {
 
 public:
+
+	enum EPlaneMovePos {
+		Earth = 0,
+		EarthOrbit = 1,
+		EarthMoonOrbit = 2,
+		MoonOrbit = 3,
+		Moon = 4,
+		Count = 5
+	};
+
 	GameApp(HINSTANCE hInstance, const std::wstring& windowName, int initWidth, int initHeight);
 	~GameApp();
 
@@ -52,9 +62,11 @@ private:
 	float m_Angle = 0.0f;
 	float m_sunOrbitRadius = 1000.0f;
 	float m_earthRadius = 30.0f;
+	float m_moonRadius = 10.0f;
 	float m_earthOrbitRadius = 50.0f;
 	float EarthMoonOrbitRadiusA = 170.0f;
 	float EarthMoonOrbitRadiusB = 150.0f;
+	float EarthMoonOrbitRadiusC = 80.0f;
 
 
 	int prevMouseX = -1;  // 初始为无效值，表示尚未记录
@@ -65,6 +77,9 @@ private:
 	const float deltaEarthRevolution = DirectX::XM_PIDIV4 / 16;
 
 	bool m_Keys[256] = { false };
+
+
+	EPlaneMovePos m_PlaneMovePos = EPlaneMovePos::Earth;
 
 };
 

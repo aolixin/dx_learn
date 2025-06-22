@@ -112,91 +112,89 @@ void GameApp::MoonRevolution(float dt)
 	// 地球世界坐标
 	XMFLOAT3 earthPos = m_earth.GetTransform().GetPosition();
 
-	// -----------------------
-	// 月球绕地球运动（轨道倾斜 30°）
-	// -----------------------
-
-	// 月球角度同地球角度（或可以分开设置）
-	float moonAngle = m_Angle * 12.0f; // 月球每圈地球 12 圈（可调）
+	float moonAngle = m_Angle * 12.0f;
 
 	float moonRadius = 50.0f;
 
-	// 原始圆周轨道坐标（XZ 平面）
-	//float mx = moonRadius * sinf(moonAngle);
-	//float mz = moonRadius * cosf(moonAngle);
-	float mx = EarthMoonOrbitRadiusA * cosf(moonAngle);
+	float mx = EarthMoonOrbitRadiusA * cosf(moonAngle) + EarthMoonOrbitRadiusC;
 	float mz = EarthMoonOrbitRadiusB * sinf(moonAngle);
 	float my = 0;
 
-	// 绕 X 轴倾斜 30 度（把 Z 平面往上抬）
 	float tilt = XMConvertToRadians(-30.0f); // 30°
 	float xRot = mx * cosf(tilt);
 	float yRot = mx * sinf(tilt);
-	
 
-	// 最终月球世界坐标 = 地球坐标 + 月球轨道偏移（绕地球旋转）
+
 	XMFLOAT3 moonPos = {
-		earthPos.x + xRot,
-		earthPos.y + yRot,
-		earthPos.z + mz
+		earthPos.x - xRot,
+		earthPos.y - yRot,
+		earthPos.z - mz
 	};
 
-	// 应用变换
 	Transform& moonTransform = m_moon.GetTransform();
 	moonTransform.SetPosition(moonPos);
 }
 
 
 void GameApp::PlaneMove(float dt) {
+	if (m_PlaneMovePos == EPlaneMovePos::Earth) {
+		auto& earthTransform = m_earth.GetTransform();
+		auto& planeTransform = m_plane.GetTransform();
 
-	auto& earthTransform = m_earth.GetTransform();
-	auto& planeTransform = m_plane.GetTransform();
+		auto earthPos = earthTransform.GetPosition();
+		XMVECTOR earthVec = XMLoadFloat3(&earthPos);
 
-	auto earthPos = earthTransform.GetPosition();
-	XMVECTOR earthVec = XMLoadFloat3(&earthPos);
+		auto planePos = planeTransform.GetPosition();
+		XMVECTOR planeVec = XMLoadFloat3(&planePos);
 
-	auto planePos = planeTransform.GetPosition();
-	XMVECTOR planeVec = XMLoadFloat3(&planePos);
-
-	XMVECTOR right = planeTransform.GetRightAxisXM();
-	XMVECTOR earth2plane = planeVec - earthVec;
-	XMVECTOR forward = planeTransform.GetForwardAxisXM();
+		XMVECTOR right = planeTransform.GetRightAxisXM();
+		XMVECTOR earth2plane = planeVec - earthVec;
+		XMVECTOR forward = planeTransform.GetForwardAxisXM();
 
 
-	XMVECTOR moveDir = XMVectorZero();
-	if (m_Keys['W'])
-		moveDir += forward;
-	if (m_Keys['S'])
-		moveDir -= forward;
-	if (m_Keys['A'])
-		moveDir -= right;
-	if (m_Keys['D'])
-		moveDir += right;
+		XMVECTOR moveDir = XMVectorZero();
+		if (m_Keys['W'])
+			moveDir += forward;
+		if (m_Keys['S'])
+			moveDir -= forward;
+		if (m_Keys['A'])
+			moveDir -= right;
+		if (m_Keys['D'])
+			moveDir += right;
 
-	float moveSpeed = 10.0f;
-	if (!XMVector3Equal(moveDir, XMVectorZero()))
-	{
-		XMVECTOR fromVec = XMVector3Normalize(planeVec - earthVec);
+		float moveSpeed = 10.0f;
+		if (!XMVector3Equal(moveDir, XMVectorZero()))
+		{
+			XMVECTOR fromVec = XMVector3Normalize(planeVec - earthVec);
 
-		planeVec = planeVec + moveDir * moveSpeed * dt;
-		XMStoreFloat3(&planePos, planeVec);
+			planeVec = planeVec + moveDir * moveSpeed * dt;
+			XMStoreFloat3(&planePos, planeVec);
 
-		XMVECTOR toVec = XMVector3Normalize(planeVec - earthVec);
+			XMVECTOR toVec = XMVector3Normalize(planeVec - earthVec);
 
-		// 旋转轴
-		XMVECTOR axis = XMVector3Normalize(XMVector3Cross(fromVec, toVec));
-		// 旋转角度
-		float angle = XMVectorGetX(XMVector3AngleBetweenVectors(fromVec, toVec));
+			// 旋转轴
+			XMVECTOR axis = XMVector3Normalize(XMVector3Cross(fromVec, toVec));
+			// 旋转角度
+			float angle = XMVectorGetX(XMVector3AngleBetweenVectors(fromVec, toVec));
 
-		planeTransform.RotateAroundXM(earthPos, axis
-			, angle
-		);
+			planeTransform.RotateAroundXM(earthPos, axis
+				, angle
+			);
+		}
+	}
+	else if (m_PlaneMovePos == EPlaneMovePos::EarthOrbit) {
+
+		float mx = m_earthOrbitRadius * sinf(0.0f);
+		float mz = m_earthOrbitRadius * cosf(0.0f);
+		float my = 0;
+
+		float tilt = XMConvertToRadians(-30.0f); // 30°
+		float xRot = mx * cosf(tilt);
+		float yRot = mx * sinf(tilt);
 	}
 }
 
 void GameApp::CameraMove(float dt) {
-	// 摄像机
-
 	auto& planeTransform = m_plane.GetTransform();
 	auto planePos = planeTransform.GetPosition();
 	XMVECTOR planeVec = XMLoadFloat3(&planePos);
@@ -222,8 +220,9 @@ void GameApp::CameraMove(float dt) {
 	}
 
 	//Transform& cameraTransform = m_pCamera->GetTransform();
-	//cameraTransform.SetPosition(0.0f, 0.0f, -1100.0f);
-	//cameraTransform.LookAt(XMFLOAT3(0, 0, 0));
+	//cameraTransform.SetPosition(0.0f, 200.0f, -1300.0f);
+	//cameraTransform.LookAt(m_earth.GetTransform().GetPosition()/*, XMFLOAT3(0.0f, 1.0f, 0.0f)*/);
+
 
 	m_BasicEffect.SetViewMatrix(m_pCamera->GetViewMatrixXM());
 	m_BasicEffect.SetEyePos(m_pCamera->GetPosition());
@@ -232,13 +231,56 @@ void GameApp::CameraMove(float dt) {
 
 void GameApp::UpdateScene(float dt)
 {
-	EarthRevolution(dt);
+	if (m_Keys['M'] || m_Keys['E']) {
+		if (m_Keys['M'])
+		{
+			m_PlaneMovePos = EPlaneMovePos((m_PlaneMovePos + 1) % EPlaneMovePos::Count);
+			m_Keys['M'] = false;
+		}
+		if (m_Keys['E'])
+		{
+			m_PlaneMovePos = EPlaneMovePos((m_PlaneMovePos - 1 + EPlaneMovePos::Count) % EPlaneMovePos::Count);
+			m_Keys['E'] = false;
+		}
+
+		if (m_PlaneMovePos == EPlaneMovePos::Earth) {
+			XMFLOAT3 pos = m_earth.GetTransform().GetPosition();
+			m_plane.GetTransform().SetPosition(pos.x, pos.y + m_earthRadius, pos.z);
+		}
+		else if (m_PlaneMovePos == EPlaneMovePos::EarthOrbit) {
+			XMFLOAT3 pos = m_earth.GetTransform().GetPosition();
+			float mx = m_earthOrbitRadius * sinf(0.0f);
+			float mz = m_earthOrbitRadius * cosf(0.0f);
+			float my = 0;
+
+			float tilt = XMConvertToRadians(-30.0f); // 30°
+			float xRot = mx * cosf(tilt);
+			float yRot = mx * sinf(tilt);
+			m_plane.GetTransform().SetPosition(pos.x + xRot, pos.y + yRot, pos.z + mz);
+		}
+		else if (m_PlaneMovePos == EPlaneMovePos::EarthMoonOrbit) {
+			XMFLOAT3 pos = m_earth.GetTransform().GetPosition();
+			m_plane.GetTransform().SetPosition(pos.x, pos.y + m_earthRadius, pos.z);
+		}
+		else if (m_PlaneMovePos == EPlaneMovePos::MoonOrbit) {
+			XMFLOAT3 pos = m_earth.GetTransform().GetPosition();
+			m_plane.GetTransform().SetPosition(pos.x, pos.y + m_earthRadius, pos.z);
+		}
+		else if (m_PlaneMovePos == EPlaneMovePos::Moon) {
+			//XMFLOAT3 pos = m_moon.GetTransform().GetPosition();
+			//m_plane.GetTransform().SetPosition(pos.x, pos.y + m_moonRadius, pos.z);
+		}
+	}
+
+
+	//EarthRevolution(dt);
 
 	MoonRevolution(dt);
 
 	PlaneMove(dt);
 
 	CameraMove(dt);
+
 }
 
 
@@ -278,10 +320,6 @@ void GameApp::DrawScene()
 
 bool GameApp::InitResource()
 {
-	// ******************
-	// 初始化游戏对象
-	//
-
 	// sun
 	Model* pModel = m_ModelManager.CreateFromFile("Resource\\Models\\sun.obj");
 	m_sun.SetModel(pModel);
@@ -326,10 +364,6 @@ bool GameApp::InitResource()
 	camera->SetPosition(0.0f, 10.0f, -1100.0f);
 	camera->LookAt(camera->GetPosition(), XMFLOAT3(0, 0, 0), XMFLOAT3(0, 1, 0));
 
-	//camera->SetTarget(earthTransform.GetPosition());
-	//camera->SetDistance(10.0f);
-	//m_pCamera->SetDistanceMinMax(0.0f, 20.0f);
-	//camera->RotateX(0);
 
 	camera->SetFrustum(XM_PI / 2, AspectRatio(), 1.0f, 100000.0f);
 
@@ -391,7 +425,6 @@ LRESULT GameApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 
 			auto& planeTransform = m_plane.GetTransform();
 
-
 			planeTransform.RotateAround(m_earth.GetTransform().GetPosition(), planeTransform.GetUpAxis(), rotateAmountY);
 		}
 
@@ -402,11 +435,9 @@ LRESULT GameApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	}
 
 	case WM_LBUTTONDOWN:
-		// 左键按下
 		break;
 
 	case WM_RBUTTONDOWN:
-		// 右键按下
 		break;
 
 	case WM_DESTROY:
