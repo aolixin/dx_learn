@@ -190,10 +190,29 @@ void GameApp::PlaneMove(float dt) {
 	else if (m_PlaneMovePos == EPlaneMovePos::EarthOrbit) {
 
 		auto& planeTransform = m_plane.GetTransform();
-		//if (m_Keys['W'])
-		//	moveDir += forward;
-		//if (m_Keys['S'])
-		//	moveDir -= forward;
+		if (m_Keys['W'])
+		{
+			auto deltaAngle = deltaEarthRevolution * 12 * dt;
+			m_planeEarthRevolutionAngle += deltaAngle;
+			m_planeEarthRevolutionAngle = m_planeEarthRevolutionAngle <= XM_2PI ?
+				m_planeEarthRevolutionAngle : m_planeEarthRevolutionAngle - XM_2PI;
+		}
+		if (m_Keys['S'])
+		{
+			auto deltaAngle = deltaEarthRevolution * 12 * dt;
+			m_planeEarthRevolutionAngle -= deltaAngle;
+			m_planeEarthRevolutionAngle = m_planeEarthRevolutionAngle >= -XM_2PI ?
+				m_planeEarthRevolutionAngle : m_planeEarthRevolutionAngle + XM_2PI;
+		}
+		XMFLOAT3 pos = m_earth.GetTransform().GetPosition();
+		float mx = m_earthOrbitRadius * cosf(m_planeEarthRevolutionAngle);
+		float mz = m_earthOrbitRadius * sinf(m_planeEarthRevolutionAngle);
+		float my = 0;
+
+		float tilt = m_inclinationAngle;
+		float xRot = mx * cosf(tilt);
+		float yRot = mx * sinf(tilt);
+		m_plane.GetTransform().SetPosition(pos.x - xRot, pos.y - yRot, pos.z - mz);
 
 		if (rawToRotate != 0.0f)
 		{
