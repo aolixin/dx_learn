@@ -12,10 +12,6 @@ using namespace DirectX;
 # pragma warning(disable: 26812)
 
 
-//
-// BasicEffect::Impl 需要先于BasicEffect的定义
-//
-
 class TexEffect::Impl
 {
 public:
@@ -39,19 +35,19 @@ public:
 };
 
 //
-// BasicEffect
+// TexEffect
 //
 
 namespace
 {
-	// BasicEffect单例
+	// TexEffect单例
 	static TexEffect* g_pInstance = nullptr;
 }
 
 TexEffect::TexEffect()
 {
 	if (g_pInstance)
-		throw std::exception("BasicEffect is a singleton!");
+		throw std::exception("TexEffect is a singleton!");
 	g_pInstance = this;
 	pImpl = std::make_unique<TexEffect::Impl>();
 }
@@ -74,7 +70,7 @@ TexEffect& TexEffect::operator=(TexEffect&& moveFrom) noexcept
 TexEffect& TexEffect::Get()
 {
 	if (!g_pInstance)
-		throw std::exception("BasicEffect needs an instance!");
+		throw std::exception("TexEffect needs an instance!");
 	return *g_pInstance;
 }
 
@@ -91,29 +87,29 @@ bool TexEffect::InitAll(ID3D11Device* device)
 
 	Microsoft::WRL::ComPtr<ID3DBlob> blob;
 	// 创建顶点着色器
-	pImpl->m_pEffectHelper->CreateShaderFromFile("BasicVS", L"ShaderBin/Unlit_VS.cso", device,
+	pImpl->m_pEffectHelper->CreateShaderFromFile("TexVS", L"ShaderBin/Tex_VS.cso", device,
 		nullptr, nullptr, nullptr, blob.GetAddressOf());
 	// 创建顶点布局
 	HR(device->CreateInputLayout(VertexPosNormalTex::GetInputLayout(), ARRAYSIZE(VertexPosNormalTex::GetInputLayout()),
 		blob->GetBufferPointer(), blob->GetBufferSize(), pImpl->m_pVertexPosNormalTexLayout.GetAddressOf()));
 
 	// 创建像素着色器
-	pImpl->m_pEffectHelper->CreateShaderFromFile("BasicPS", L"ShaderBin/Unlit_PS.cso", device);
+	pImpl->m_pEffectHelper->CreateShaderFromFile("TexPS", L"ShaderBin/Tex_PS.cso", device);
 
 
 	// 创建通道
 	EffectPassDesc passDesc;
-	passDesc.nameVS = "BasicVS";
-	passDesc.namePS = "BasicPS";
-	HR(pImpl->m_pEffectHelper->AddEffectPass("Basic", device, &passDesc));
+	passDesc.nameVS = "TexVS";
+	passDesc.namePS = "TexPS";
+	HR(pImpl->m_pEffectHelper->AddEffectPass("Tex", device, &passDesc));
 
 	pImpl->m_pEffectHelper->SetSamplerStateByName("g_Sam", RenderStates::SSLinearWrap.Get());
 
 	// 设置调试对象名
 #if (defined(DEBUG) || defined(_DEBUG)) && (GRAPHICS_DEBUGGER_OBJECT_NAME)
-	SetDebugObjectName(pImpl->m_pVertexPosNormalTexLayout.Get(), "BasicEffect.VertexPosNormalTexLayout");
+	SetDebugObjectName(pImpl->m_pVertexPosNormalTexLayout.Get(), "TexEffect.VertexPosNormalTexLayout");
 #endif
-	pImpl->m_pEffectHelper->SetDebugObjectName("BasicEffect");
+	pImpl->m_pEffectHelper->SetDebugObjectName("TexEffect");
 
 	return true;
 }
@@ -199,7 +195,7 @@ void TexEffect::SetEyePos(const DirectX::XMFLOAT3& eyePos)
 
 void TexEffect::SetRenderDefault()
 {
-	pImpl->m_pCurrEffectPass = pImpl->m_pEffectHelper->GetEffectPass("Basic");
+	pImpl->m_pCurrEffectPass = pImpl->m_pEffectHelper->GetEffectPass("Tex");
 	pImpl->m_pCurrInputLayout = pImpl->m_pVertexPosNormalTexLayout;
 	pImpl->m_CurrTopology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 }

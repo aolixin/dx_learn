@@ -44,7 +44,7 @@ public:
 
 
     //
-    // BasicEffect
+    // TexEffect
     //
 
     // 默认状态来绘制
