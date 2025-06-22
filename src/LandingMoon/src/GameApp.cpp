@@ -42,7 +42,7 @@ bool GameApp::Init()
 	// 务必先初始化所有渲染状态，以供下面的特效使用
 	RenderStates::InitAll(m_pd3dDevice.Get());
 
-	if (!m_BasicEffect.InitAll(m_pd3dDevice.Get()))
+	if (!m_TexEffect.InitAll(m_pd3dDevice.Get()))
 		return false;
 
 	if (!InitResource())
@@ -65,7 +65,7 @@ void GameApp::OnResize()
 	{
 		m_pCamera->SetFrustum(XM_PI / 3, AspectRatio(), 1.0f, 1000.0f);
 		m_pCamera->SetViewPort(0.0f, 0.0f, (float)m_ClientWidth, (float)m_ClientHeight);
-		m_BasicEffect.SetProjMatrix(m_pCamera->GetProjMatrixXM());
+		m_TexEffect.SetProjMatrix(m_pCamera->GetProjMatrixXM());
 	}
 }
 
@@ -373,8 +373,8 @@ void GameApp::CameraMove(float dt) {
 	//cameraTransform.LookAt(m_earth.GetTransform().GetPosition()/*, XMFLOAT3(0.0f, 1.0f, 0.0f)*/);
 
 
-	m_BasicEffect.SetViewMatrix(m_pCamera->GetViewMatrixXM());
-	m_BasicEffect.SetEyePos(m_pCamera->GetPosition());
+	m_TexEffect.SetViewMatrix(m_pCamera->GetViewMatrixXM());
+	m_TexEffect.SetEyePos(m_pCamera->GetPosition());
 }
 
 
@@ -472,22 +472,12 @@ void GameApp::DrawScene()
 	D3D11_VIEWPORT viewport = m_pCamera->GetViewPort();
 	m_pd3dImmediateContext->RSSetViewports(1, &viewport);
 
-	m_BasicEffect.SetRenderDefault();
-	m_sun.Draw(m_pd3dImmediateContext.Get(), m_BasicEffect);
-	m_earth.Draw(m_pd3dImmediateContext.Get(), m_BasicEffect);
-	m_moon.Draw(m_pd3dImmediateContext.Get(), m_BasicEffect);
-	m_plane.Draw(m_pd3dImmediateContext.Get(), m_BasicEffect);
+	m_TexEffect.SetRenderDefault();
+	m_sun.Draw(m_pd3dImmediateContext.Get(), m_TexEffect);
+	m_earth.Draw(m_pd3dImmediateContext.Get(), m_TexEffect);
+	m_moon.Draw(m_pd3dImmediateContext.Get(), m_TexEffect);
+	m_plane.Draw(m_pd3dImmediateContext.Get(), m_TexEffect);
 
-	if (m_pd2dRenderTarget != nullptr)
-	{
-		m_pd2dRenderTarget->BeginDraw();
-		std::wstring textStr = L"切换灯光类型: 1-平行光 2-点光 3-聚光灯\n"
-			L"切换模型: Q-立方体 W-球体 E-圆柱体 R-圆锥体\n"
-			L"S-切换模式 当前模式: ";
-		m_pd2dRenderTarget->DrawTextW(textStr.c_str(), (UINT32)textStr.size(), m_pTextFormat.Get(),
-			D2D1_RECT_F{ 0.0f, 0.0f, 600.0f, 200.0f }, m_pColorBrush.Get());
-		HR(m_pd2dRenderTarget->EndDraw());
-	}
 
 	HR(m_pSwapChain->Present(0, m_IsDxgiFlipModel ? DXGI_PRESENT_ALLOW_TEARING : 0));
 }
@@ -543,10 +533,10 @@ bool GameApp::InitResource()
 
 	camera->SetFrustum(XM_PI / 2, AspectRatio(), 1.0f, 100000.0f);
 
-	m_BasicEffect.SetWorldMatrix(XMMatrixIdentity());
-	m_BasicEffect.SetViewMatrix(camera->GetViewMatrixXM());
-	m_BasicEffect.SetProjMatrix(camera->GetProjMatrixXM());
-	m_BasicEffect.SetEyePos(camera->GetPosition());
+	m_TexEffect.SetWorldMatrix(XMMatrixIdentity());
+	m_TexEffect.SetViewMatrix(camera->GetViewMatrixXM());
+	m_TexEffect.SetProjMatrix(camera->GetProjMatrixXM());
+	m_TexEffect.SetEyePos(camera->GetPosition());
 
 	// 环境光
 	DirectionalLight dirLight{};
@@ -554,7 +544,7 @@ bool GameApp::InitResource()
 	dirLight.diffuse = XMFLOAT4(0.8f, 0.8f, 0.8f, 1.0f);
 	dirLight.specular = XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f);
 	dirLight.direction = XMFLOAT3(0.0f, -1.0f, 0.0f);
-	m_BasicEffect.SetDirLight(0, dirLight);
+	m_TexEffect.SetDirLight(0, dirLight);
 	// 灯光
 	PointLight pointLight{};
 	pointLight.position = XMFLOAT3(0.0f, 0.0f, 0.0f);
@@ -563,7 +553,7 @@ bool GameApp::InitResource()
 	pointLight.specular = XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f);
 	pointLight.att = XMFLOAT3(0.0f, 0.1f, 0.0f);
 	pointLight.range = 30.0f;
-	m_BasicEffect.SetPointLight(0, pointLight);
+	m_TexEffect.SetPointLight(0, pointLight);
 
 	return true;
 }

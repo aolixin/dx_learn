@@ -16,7 +16,7 @@ using namespace DirectX;
 // BasicEffect::Impl 需要先于BasicEffect的定义
 //
 
-class BasicEffect::Impl
+class TexEffect::Impl
 {
 public:
 	// 必须显式指定
@@ -45,33 +45,33 @@ public:
 namespace
 {
 	// BasicEffect单例
-	static BasicEffect* g_pInstance = nullptr;
+	static TexEffect* g_pInstance = nullptr;
 }
 
-BasicEffect::BasicEffect()
+TexEffect::TexEffect()
 {
 	if (g_pInstance)
 		throw std::exception("BasicEffect is a singleton!");
 	g_pInstance = this;
-	pImpl = std::make_unique<BasicEffect::Impl>();
+	pImpl = std::make_unique<TexEffect::Impl>();
 }
 
-BasicEffect::~BasicEffect()
+TexEffect::~TexEffect()
 {
 }
 
-BasicEffect::BasicEffect(BasicEffect&& moveFrom) noexcept
+TexEffect::TexEffect(TexEffect&& moveFrom) noexcept
 {
 	pImpl.swap(moveFrom.pImpl);
 }
 
-BasicEffect& BasicEffect::operator=(BasicEffect&& moveFrom) noexcept
+TexEffect& TexEffect::operator=(TexEffect&& moveFrom) noexcept
 {
 	pImpl.swap(moveFrom.pImpl);
 	return *this;
 }
 
-BasicEffect& BasicEffect::Get()
+TexEffect& TexEffect::Get()
 {
 	if (!g_pInstance)
 		throw std::exception("BasicEffect needs an instance!");
@@ -79,7 +79,7 @@ BasicEffect& BasicEffect::Get()
 }
 
 
-bool BasicEffect::InitAll(ID3D11Device* device)
+bool TexEffect::InitAll(ID3D11Device* device)
 {
 	if (!device)
 		return false;
@@ -118,22 +118,22 @@ bool BasicEffect::InitAll(ID3D11Device* device)
 	return true;
 }
 
-void XM_CALLCONV BasicEffect::SetWorldMatrix(DirectX::FXMMATRIX W)
+void XM_CALLCONV TexEffect::SetWorldMatrix(DirectX::FXMMATRIX W)
 {
 	XMStoreFloat4x4(&pImpl->m_World, W);
 }
 
-void XM_CALLCONV BasicEffect::SetViewMatrix(DirectX::FXMMATRIX V)
+void XM_CALLCONV TexEffect::SetViewMatrix(DirectX::FXMMATRIX V)
 {
 	XMStoreFloat4x4(&pImpl->m_View, V);
 }
 
-void XM_CALLCONV BasicEffect::SetProjMatrix(DirectX::FXMMATRIX P)
+void XM_CALLCONV TexEffect::SetProjMatrix(DirectX::FXMMATRIX P)
 {
 	XMStoreFloat4x4(&pImpl->m_Proj, P);
 }
 
-void BasicEffect::SetMaterial(const Material& material)
+void TexEffect::SetMaterial(const Material& material)
 {
 	TextureManager& tm = TextureManager::Get();
 
@@ -149,7 +149,7 @@ void BasicEffect::SetMaterial(const Material& material)
 	pImpl->m_pEffectHelper->SetShaderResourceByName("g_DiffuseMap", pStr ? tm.GetTexture(*pStr) : tm.GetNullTexture());
 }
 
-MeshDataInput BasicEffect::GetInputData(const MeshData& meshData)
+MeshDataInput TexEffect::GetInputData(const MeshData& meshData)
 {
 	MeshDataInput input;
 	input.pInputLayout = pImpl->m_pCurrInputLayout.Get();
@@ -169,42 +169,42 @@ MeshDataInput BasicEffect::GetInputData(const MeshData& meshData)
 	return input;
 }
 
-void BasicEffect::SetDirLight(uint32_t pos, const DirectionalLight& dirLight)
+void TexEffect::SetDirLight(uint32_t pos, const DirectionalLight& dirLight)
 {
 	auto buffer = pImpl->m_pEffectHelper->GetConstantBufferVariable("g_DirLight");
 	if (buffer == nullptr)return;
 	buffer->SetRaw(&dirLight, (sizeof dirLight) * pos, sizeof dirLight);
 }
 
-void BasicEffect::SetPointLight(uint32_t pos, const PointLight& pointLight)
+void TexEffect::SetPointLight(uint32_t pos, const PointLight& pointLight)
 {
 	auto buffer = pImpl->m_pEffectHelper->GetConstantBufferVariable("g_DirLight");
 	if (buffer == nullptr)return;
 	buffer->SetRaw(&pointLight, (sizeof pointLight) * pos, sizeof pointLight);
 }
 
-void BasicEffect::SetSpotLight(uint32_t pos, const SpotLight& spotLight)
+void TexEffect::SetSpotLight(uint32_t pos, const SpotLight& spotLight)
 {
 	auto buffer = pImpl->m_pEffectHelper->GetConstantBufferVariable("g_DirLight");
 	if (buffer == nullptr)return;
 	buffer->SetRaw(&spotLight, (sizeof spotLight) * pos, sizeof spotLight);
 }
 
-void BasicEffect::SetEyePos(const DirectX::XMFLOAT3& eyePos)
+void TexEffect::SetEyePos(const DirectX::XMFLOAT3& eyePos)
 {
 	auto buffer = pImpl->m_pEffectHelper->GetConstantBufferVariable("g_DirLight");
 	if (buffer == nullptr)return;
 	buffer->SetFloatVector(3, reinterpret_cast<const float*>(&eyePos));
 }
 
-void BasicEffect::SetRenderDefault()
+void TexEffect::SetRenderDefault()
 {
 	pImpl->m_pCurrEffectPass = pImpl->m_pEffectHelper->GetEffectPass("Basic");
 	pImpl->m_pCurrInputLayout = pImpl->m_pVertexPosNormalTexLayout;
 	pImpl->m_CurrTopology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 }
 
-void BasicEffect::Apply(ID3D11DeviceContext* deviceContext)
+void TexEffect::Apply(ID3D11DeviceContext* deviceContext)
 {
 	XMMATRIX W = XMLoadFloat4x4(&pImpl->m_World);
 	XMMATRIX V = XMLoadFloat4x4(&pImpl->m_View);

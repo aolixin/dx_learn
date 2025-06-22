@@ -1,11 +1,3 @@
-//***************************************************************************************
-// Effects.h by X_Jun(MKXJun) (C) 2018-2022 All Rights Reserved.
-// Licensed under the MIT License.
-//
-// 简易特效管理框架
-// Simple effect management framework.
-//***************************************************************************************
-
 #ifndef EFFECTS_H
 #define EFFECTS_H
 
@@ -14,18 +6,18 @@
 #include <MeshData.h>
 #include <LightHelper.h>
 
-class BasicEffect : public IEffect, public IEffectTransform,
+class TexEffect : public IEffect, public IEffectTransform,
     public IEffectMaterial, public IEffectMeshData
 {
 public:
-    BasicEffect();
-    virtual ~BasicEffect() override;
+    TexEffect();
+    virtual ~TexEffect() override;
 
-    BasicEffect(BasicEffect&& moveFrom) noexcept;
-    BasicEffect& operator=(BasicEffect&& moveFrom) noexcept;
+    TexEffect(TexEffect&& moveFrom) noexcept;
+    TexEffect& operator=(TexEffect&& moveFrom) noexcept;
 
     // 获取单例
-    static BasicEffect& Get();
+    static TexEffect& Get();
 
     // 初始化所需资源
     bool InitAll(ID3D11Device* device);

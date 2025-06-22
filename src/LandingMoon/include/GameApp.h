@@ -49,7 +49,7 @@ private:
 	TextureManager m_TextureManager;
 	ModelManager m_ModelManager;
 
-	BasicEffect m_BasicEffect;
+	TexEffect m_TexEffect;
 
 	std::unique_ptr<Depth2D> m_pDepthTexture;
 
