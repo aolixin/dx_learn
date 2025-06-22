@@ -13,6 +13,24 @@ GameApp::~GameApp()
 {
 }
 
+void LockMouseToWindow(HWND hwnd)
+{
+	RECT rect;
+	// 获取窗口客户区域（相对于窗口左上角）
+	GetClientRect(hwnd, &rect);
+
+	// 将客户区域坐标转换为屏幕坐标
+	POINT ul = { rect.left, rect.top };
+	POINT lr = { rect.right, rect.bottom };
+
+	ClientToScreen(hwnd, &ul);
+	ClientToScreen(hwnd, &lr);
+
+	RECT clipRect = { ul.x, ul.y, lr.x, lr.y };
+	ClipCursor(&clipRect);  // 限制鼠标在 clipRect 区域
+}
+
+
 bool GameApp::Init()
 {
 	if (!D3DApp::Init())
@@ -30,6 +48,9 @@ bool GameApp::Init()
 	if (!InitResource())
 		return false;
 
+	ShowCursor(FALSE);
+	LockMouseToWindow(m_hMainWnd);
+
 	return true;
 }
 
@@ -40,7 +61,6 @@ void GameApp::OnResize()
 	m_pDepthTexture = std::make_unique<Depth2D>(m_pd3dDevice.Get(), m_ClientWidth, m_ClientHeight);
 	m_pDepthTexture->SetDebugObjectName("DepthTexture");
 
-	// 摄像机变更显示
 	if (m_pCamera != nullptr)
 	{
 		m_pCamera->SetFrustum(XM_PI / 3, AspectRatio(), 1.0f, 1000.0f);
@@ -50,13 +70,11 @@ void GameApp::OnResize()
 }
 
 void GameApp::EarthRevolution(float dt) {
-	// 每秒旋转 45 度（顺时针）
-	auto deltaAngle = XM_PIDIV4 / 4 * dt;
+	auto deltaAngle = deltaEarthRevolution * dt;
 	m_Angle += deltaAngle;
 	if (m_Angle > XM_2PI)
 		m_Angle -= XM_2PI;
 
-	// 地球公转
 	float x = m_sunOrbitRadius * sinf(m_Angle);
 	float z = m_sunOrbitRadius * cosf(m_Angle);
 
@@ -83,6 +101,49 @@ void GameApp::EarthRevolution(float dt) {
 	XMStoreFloat3(&newPlanePos, newPlaneVec);
 	planeTransform.SetPosition(newPlanePos);
 }
+
+void GameApp::MoonRevolution(float dt)
+{
+	auto deltaAngle = deltaEarthRevolution * dt;
+	m_Angle += deltaAngle;
+	if (m_Angle > XM_2PI)
+		m_Angle -= XM_2PI;
+
+	// 地球世界坐标
+	XMFLOAT3 earthPos = m_earth.GetTransform().GetPosition();
+
+	// -----------------------
+	// 月球绕地球运动（轨道倾斜 30°）
+	// -----------------------
+
+	// 月球角度同地球角度（或可以分开设置）
+	float moonAngle = m_Angle * 12.0f; // 月球每圈地球 12 圈（可调）
+
+	float moonRadius = 50.0f;
+
+	// 原始圆周轨道坐标（XZ 平面）
+	float mx = moonRadius * sinf(moonAngle);
+	float mz = moonRadius * cosf(moonAngle);
+	float my = 0;
+
+	// 绕 X 轴倾斜 30 度（把 Z 平面往上抬）
+	float tilt = XMConvertToRadians(-30.0f); // 30°
+	float xRot = mx * cosf(tilt);
+	float yRot = mx * sinf(tilt);
+	
+
+	// 最终月球世界坐标 = 地球坐标 + 月球轨道偏移（绕地球旋转）
+	XMFLOAT3 moonPos = {
+		earthPos.x + xRot,
+		earthPos.y + yRot,
+		earthPos.z + mz
+	};
+
+	// 应用变换
+	Transform& moonTransform = m_moon.GetTransform();
+	moonTransform.SetPosition(moonPos);
+}
+
 
 void GameApp::PlaneMove(float dt) {
 
@@ -131,105 +192,20 @@ void GameApp::PlaneMove(float dt) {
 	}
 }
 
-
-void GameApp::UpdateScene(float dt)
-{
-
-	// 每秒旋转 45 度（顺时针）
-	auto deltaAngle = XM_PIDIV4 / 4 * dt;
-	m_Angle += deltaAngle;
-	if (m_Angle > XM_2PI)
-		m_Angle -= XM_2PI;
-
-	// 地球公转
-	float x = m_sunOrbitRadius * sinf(m_Angle);
-	float z = m_sunOrbitRadius * cosf(m_Angle);
-
-	float y = 0.0f;
-
-
-
-	Transform& earthTransform = m_earth.GetTransform();
-	XMFLOAT3 oldEarthPos = earthTransform.GetPosition();
-	XMVECTOR oldEarthVec = XMLoadFloat3(&oldEarthPos);
-
-	XMFLOAT3 newEarthPos(x, y, z);
-	XMVECTOR newEarthVec = XMLoadFloat3(&newEarthPos);
-
-	//XMFLOAT3 newEarthPos = oldEarthPos;
-	//XMVECTOR newEarthVec = oldEarthVec;
-
-	auto deltaEarth = newEarthVec - oldEarthVec;
-	earthTransform.SetPosition(newEarthPos);
-
+void GameApp::CameraMove(float dt) {
+	// 摄像机
 
 	auto& planeTransform = m_plane.GetTransform();
-	XMFLOAT3 oldPlanePos = planeTransform.GetPosition();
-	XMVECTOR oldPlaneVec = XMLoadFloat3(&oldPlanePos);
-
-	XMVECTOR newPlaneVec = oldPlaneVec + deltaEarth;
-	XMFLOAT3 newPlanePos;
-	XMStoreFloat3(&newPlanePos, newPlaneVec);
-	planeTransform.SetPosition(newPlanePos);
-
-
-
-	// plane 移动
-
-	XMVECTOR right = planeTransform.GetRightAxisXM();
-	XMVECTOR earth2plane = newPlaneVec - newEarthVec;
-	//XMVECTOR forward = XMVector3Normalize(XMVector3Cross(right, earth2plane));
-	XMVECTOR forward = planeTransform.GetForwardAxisXM();
-
-
-	XMVECTOR moveDir = XMVectorZero();
-	if (m_Keys['W'])
-		moveDir += forward;
-	if (m_Keys['S'])
-		moveDir -= forward;
-	if (m_Keys['A'])
-		moveDir -= right;
-	if (m_Keys['D'])
-		moveDir += right;
-
-	float moveSpeed = 10.0f;
-	if (!XMVector3Equal(moveDir, XMVectorZero()))
-	{
-		auto planeVec = newPlaneVec + moveDir * moveSpeed * dt;
-		XMFLOAT3 planePos;
-
-		XMStoreFloat3(&planePos, planeVec);
-
-		//planeTransform.SetPosition(planePos);
-		XMVECTOR earthVec = XMLoadFloat3(&newEarthPos);
-		XMVECTOR fromVec = XMVector3Normalize(newPlaneVec - earthVec);
-		XMVECTOR toVec = XMVector3Normalize(planeVec - earthVec);
-
-		// 旋转轴
-		XMVECTOR rotationAxis = XMVector3Normalize(XMVector3Cross(fromVec, toVec));
-		XMFLOAT3 axis;
-		XMStoreFloat3(&axis, rotationAxis);
-		// 旋转角度
-		float rotationAngle = XMVectorGetX(XMVector3AngleBetweenVectors(fromVec, toVec));
-
-		planeTransform.RotateAround(newEarthPos, axis, rotationAngle);
-	}
-
-
-	// 摄像机
 	auto planePos = planeTransform.GetPosition();
 	XMVECTOR planeVec = XMLoadFloat3(&planePos);
 
 	float distance = 3.0f;
-	//XMVECTOR cameraVec = XMVectorAdd(planeVec, XMVectorScale(dir, distance));
 
 	XMVECTOR cameraVec = planeTransform.GetForwardAxisXM() * -distance + planeVec;
-	//cameraVec += planeTransform.GetUpAxisXM();
 
 	XMFLOAT3 cameraPos;
 	XMStoreFloat3(&cameraPos, cameraVec);
 
-	//m_pCamera->SetPosition(cameraPos);
 	XMVECTOR planeRightVec = planeTransform.GetRightAxisXM();
 	XMVECTOR cameraToPlane = XMVector3Normalize(planeVec - cameraVec);
 	XMVECTOR cameraUpVec = XMVector3Normalize(XMVector3Cross(cameraToPlane, planeRightVec));
@@ -243,8 +219,24 @@ void GameApp::UpdateScene(float dt)
 		cameraTransform.RotateAround(planeTransform.GetPosition(), planeRight, pitch);
 	}
 
+	//Transform& cameraTransform = m_pCamera->GetTransform();
+	//cameraTransform.SetPosition(0.0f, 0.0f, -1100.0f);
+	//cameraTransform.LookAt(XMFLOAT3(0, 0, 0));
+
 	m_BasicEffect.SetViewMatrix(m_pCamera->GetViewMatrixXM());
 	m_BasicEffect.SetEyePos(m_pCamera->GetPosition());
+}
+
+
+void GameApp::UpdateScene(float dt)
+{
+	EarthRevolution(dt);
+
+	MoonRevolution(dt);
+
+	PlaneMove(dt);
+
+	CameraMove(dt);
 }
 
 

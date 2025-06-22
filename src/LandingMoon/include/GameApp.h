@@ -26,7 +26,9 @@ public:
 	void DrawScene();
 
 	void EarthRevolution(float dt);
+	void MoonRevolution(float dt);
 	void PlaneMove(float dt);
+	void CameraMove(float dt);
 
 	LRESULT MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) override;
 
@@ -50,11 +52,14 @@ private:
 	float m_Angle = 0.0f;
 	float m_sunOrbitRadius = 1000.0f;
 	float m_earthRadius = 30.0f;
+	float m_earthOrbitRadius = 50.0f;
 
 	int prevMouseX = -1;  // 初始为无效值，表示尚未记录
 	int prevMouseY = -1;
 
 	float pitch = 0.0f;
+
+	const float deltaEarthRevolution = DirectX::XM_PIDIV4 / 16;
 
 	bool m_Keys[256] = { false };
 
