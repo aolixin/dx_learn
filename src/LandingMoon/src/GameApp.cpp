@@ -91,15 +91,16 @@ void GameApp::EarthRevolution(float dt) {
 	auto deltaEarth = newEarthVec - oldEarthVec;
 	earthTransform.SetPosition(newEarthPos);
 
+	if (m_PlaneMovePos == EPlaneMovePos::Earth) {
+		auto& planeTransform = m_plane.GetTransform();
+		XMFLOAT3 oldPlanePos = planeTransform.GetPosition();
+		XMVECTOR oldPlaneVec = XMLoadFloat3(&oldPlanePos);
 
-	auto& planeTransform = m_plane.GetTransform();
-	XMFLOAT3 oldPlanePos = planeTransform.GetPosition();
-	XMVECTOR oldPlaneVec = XMLoadFloat3(&oldPlanePos);
-
-	XMVECTOR newPlaneVec = oldPlaneVec + deltaEarth;
-	XMFLOAT3 newPlanePos;
-	XMStoreFloat3(&newPlanePos, newPlaneVec);
-	planeTransform.SetPosition(newPlanePos);
+		XMVECTOR newPlaneVec = oldPlaneVec + deltaEarth;
+		XMFLOAT3 newPlanePos;
+		XMStoreFloat3(&newPlanePos, newPlaneVec);
+		planeTransform.SetPosition(newPlanePos);
+	}
 }
 
 void GameApp::MoonRevolution(float dt)
@@ -383,12 +384,12 @@ void GameApp::UpdateScene(float dt)
 	if (m_Keys['M'] || m_Keys['E']) {
 		if (m_Keys['M'])
 		{
-			m_PlaneMovePos = EPlaneMovePos((m_PlaneMovePos + 1) % EPlaneMovePos::Count);
+			m_PlaneMovePos = EPlaneMovePos(std::min((m_PlaneMovePos + 1), EPlaneMovePos::Count - 1));
 			m_Keys['M'] = false;
 		}
 		if (m_Keys['E'])
 		{
-			m_PlaneMovePos = EPlaneMovePos((m_PlaneMovePos - 1 + EPlaneMovePos::Count) % EPlaneMovePos::Count);
+			m_PlaneMovePos = EPlaneMovePos(std::max(m_PlaneMovePos - 1, 0));
 			m_Keys['E'] = false;
 		}
 
@@ -441,7 +442,7 @@ void GameApp::UpdateScene(float dt)
 	}
 
 
-	//EarthRevolution(dt);
+	EarthRevolution(dt);
 
 	MoonRevolution(dt);
 

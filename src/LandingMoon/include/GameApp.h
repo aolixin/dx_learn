@@ -50,6 +50,7 @@ private:
 	ModelManager m_ModelManager;
 
 	TexEffect m_TexEffect;
+	//UnlitEffect m_TexEffect;
 
 	std::unique_ptr<Depth2D> m_pDepthTexture;
 
@@ -79,6 +80,10 @@ private:
 
 	int prevMouseX = -1;  // 初始为无效值，表示尚未记录
 	int prevMouseY = -1;
+
+	int centerX = m_ClientWidth / 2;
+	int centerY = m_ClientHeight / 2;
+
 
 	float pitch = 0.0f;
 	float rawToRotate = 0.0f;
