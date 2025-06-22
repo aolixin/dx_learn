@@ -2,6 +2,7 @@
 #include <XUtil.h>
 #include <DXTrace.h>
 
+
 using namespace DirectX;
 
 GameApp::GameApp(HINSTANCE hInstance, const std::wstring& windowName, int initWidth, int initHeight)
@@ -26,7 +27,7 @@ void LockMouseToWindow(HWND hwnd)
 	ClientToScreen(hwnd, &ul);
 	ClientToScreen(hwnd, &lr);
 
-	RECT clipRect = { ul.x, ul.y, lr.x, lr.y };
+	RECT clipRect = { ul.x - 2, ul.y - 2, lr.x + 2, lr.y + 2 };
 	ClipCursor(&clipRect);  // 限制鼠标在 clipRect 区域
 }
 
@@ -595,8 +596,44 @@ LRESULT GameApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 		prevMouseX = xPos;
 		prevMouseY = yPos;
 
+		// 获取窗口客户区大小
+		int windowWidth = m_ClientWidth;
+		int windowHeight = m_ClientHeight;
+
+		bool wrapped = false;
+
+		if (xPos <= 0) {
+			xPos = windowWidth - 2;
+			wrapped = true;
+		}
+		else if (xPos >= windowWidth - 1) {
+			xPos = 1;
+			wrapped = true;
+		}
+
+		/*if (yPos <= 0) {
+			yPos = windowHeight - 2;
+			wrapped = true;
+		}
+		else if (yPos >= windowHeight - 1) {
+			yPos = 1;
+			wrapped = true;
+		}*/
+
+		if (wrapped) {
+			POINT pt = { xPos, yPos };
+			ClientToScreen(hwnd, &pt);
+			SetCursorPos(pt.x, pt.y);
+
+			// 更新prevMouseX/Y为新的坐标，避免跳变
+			prevMouseX = xPos;
+			prevMouseY = yPos;
+		}
+
 		break;
 	}
+
+
 
 	case WM_LBUTTONDOWN:
 		break;
