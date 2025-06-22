@@ -5,7 +5,7 @@ float4 PS(VertexPosHWNormalTex pIn) : SV_Target
 {
     float4 texColor = g_DiffuseMap.Sample(g_Sam, pIn.tex);
     return texColor;
-    //// 提前进行Alpha裁剪，对不符合要求的像素可以避免后续运算
+    // 提前进行Alpha裁剪，对不符合要求的像素可以避免后续运算
     //clip(texColor.a - 0.1f);
     
     //// 标准化法向量

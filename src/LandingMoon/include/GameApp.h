@@ -64,6 +64,8 @@ private:
 	float m_earthRevolutionAngle = 0.0f;
 	float m_moonRevolutionAngle = 0.0f;
 	float m_planeEarthRevolutionAngle = 0.0f;
+	float m_planeEarthMoonRevolutionAngle = 0.0f;
+	float m_planeMoonRevolutionAngle = 0.0f;
 
 	float m_sunOrbitRadius = 1000.0f;
 	float m_earthRadius = 30.0f;
@@ -72,6 +74,7 @@ private:
 	float EarthMoonOrbitRadiusA = 170.0f;
 	float EarthMoonOrbitRadiusB = 150.0f;
 	float EarthMoonOrbitRadiusC = 80.0f;
+	float m_moonOrbitRadius = 15.0f;
 
 
 	int prevMouseX = -1;  // 初始为无效值，表示尚未记录

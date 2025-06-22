@@ -91,14 +91,14 @@ bool BasicEffect::InitAll(ID3D11Device* device)
 
 	Microsoft::WRL::ComPtr<ID3DBlob> blob;
 	// 创建顶点着色器
-	pImpl->m_pEffectHelper->CreateShaderFromFile("BasicVS", L"ShaderBin/Basic_VS.cso", device,
+	pImpl->m_pEffectHelper->CreateShaderFromFile("BasicVS", L"ShaderBin/Unlit_VS.cso", device,
 		nullptr, nullptr, nullptr, blob.GetAddressOf());
 	// 创建顶点布局
 	HR(device->CreateInputLayout(VertexPosNormalTex::GetInputLayout(), ARRAYSIZE(VertexPosNormalTex::GetInputLayout()),
 		blob->GetBufferPointer(), blob->GetBufferSize(), pImpl->m_pVertexPosNormalTexLayout.GetAddressOf()));
 
 	// 创建像素着色器
-	pImpl->m_pEffectHelper->CreateShaderFromFile("BasicPS", L"ShaderBin/Basic_PS.cso", device);
+	pImpl->m_pEffectHelper->CreateShaderFromFile("BasicPS", L"ShaderBin/Unlit_PS.cso", device);
 
 
 	// 创建通道

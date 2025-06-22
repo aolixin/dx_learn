@@ -132,7 +132,22 @@ void GameApp::MoonRevolution(float dt)
 	};
 
 	Transform& moonTransform = m_moon.GetTransform();
+	XMVECTOR oldMoonVec = moonTransform.GetPositionXM();
 	moonTransform.SetPosition(moonPos);
+	XMVECTOR newMoonVec = moonTransform.GetPositionXM();
+
+	if (m_PlaneMovePos == EPlaneMovePos::Moon) {
+		auto& planeTransform = m_plane.GetTransform();
+		XMFLOAT3 oldPlanePos = planeTransform.GetPosition();
+		XMVECTOR oldPlaneVec = XMLoadFloat3(&oldPlanePos);
+
+		auto deltaMoon = newMoonVec - oldMoonVec;
+
+		XMVECTOR newPlaneVec = oldPlaneVec + deltaMoon;
+		XMFLOAT3 newPlanePos;
+		XMStoreFloat3(&newPlanePos, newPlaneVec);
+		planeTransform.SetPosition(newPlanePos);
+	}
 }
 
 
@@ -220,6 +235,114 @@ void GameApp::PlaneMove(float dt) {
 			rawToRotate = 0.0f;
 		}
 	}
+	else if (m_PlaneMovePos == EPlaneMovePos::EarthMoonOrbit) {
+		// 飞行器在地月轨道运动
+		auto& planeTransform = m_plane.GetTransform();
+		XMFLOAT3 earthPos = m_earth.GetTransform().GetPosition();
+
+		if (m_Keys['W'])
+		{
+			m_planeEarthMoonRevolutionAngle += deltaEarthRevolution * 12 * dt;
+			if (m_planeEarthMoonRevolutionAngle > XM_2PI)
+				m_planeEarthMoonRevolutionAngle -= XM_2PI;
+		}
+		if (m_Keys['S'])
+		{
+			m_planeEarthMoonRevolutionAngle -= deltaEarthRevolution * 12 * dt;
+			if (m_planeEarthMoonRevolutionAngle < -XM_2PI)
+				m_planeEarthMoonRevolutionAngle += XM_2PI;
+		}
+
+		float mx = EarthMoonOrbitRadiusA * cosf(m_planeEarthMoonRevolutionAngle) + EarthMoonOrbitRadiusC;
+		float mz = EarthMoonOrbitRadiusB * sinf(m_planeEarthMoonRevolutionAngle);
+		float tilt = m_inclinationAngle;
+		float xRot = mx * cosf(tilt);
+		float yRot = mx * sinf(tilt);
+		planeTransform.SetPosition(earthPos.x - xRot, earthPos.y - yRot, earthPos.z - mz);
+
+		if (rawToRotate != 0.0f)
+		{
+			planeTransform.RotateAround(planeTransform.GetPosition(), planeTransform.GetUpAxis(), rawToRotate);
+			rawToRotate = 0.0f;
+		}
+	}
+	else if (m_PlaneMovePos == EPlaneMovePos::MoonOrbit) {
+		auto& planeTransform = m_plane.GetTransform();
+		XMFLOAT3 moonPos = m_moon.GetTransform().GetPosition();
+
+		if (m_Keys['W'])
+		{
+			m_planeMoonRevolutionAngle += deltaEarthRevolution * 12 * dt;
+			if (m_planeMoonRevolutionAngle > XM_2PI)
+				m_planeMoonRevolutionAngle -= XM_2PI;
+		}
+		if (m_Keys['S'])
+		{
+			m_planeMoonRevolutionAngle -= deltaEarthRevolution * 12 * dt;
+			if (m_planeMoonRevolutionAngle < -XM_2PI)
+				m_planeMoonRevolutionAngle += XM_2PI;
+		}
+
+		float tilt = 0.0f;
+		float mx = m_moonOrbitRadius * cosf(m_planeMoonRevolutionAngle);
+		float mz = m_moonOrbitRadius * sinf(m_planeMoonRevolutionAngle);
+		float xRot = mx * cosf(tilt);
+		float yRot = mx * sinf(tilt);
+		planeTransform.SetPosition(moonPos.x - xRot, moonPos.y - yRot, moonPos.z - mz);
+
+		if (rawToRotate != 0.0f)
+		{
+			planeTransform.RotateAround(planeTransform.GetPosition(), planeTransform.GetUpAxis(), rawToRotate);
+			rawToRotate = 0.0f;
+		}
+	}
+	else if (m_PlaneMovePos == EPlaneMovePos::Moon) {
+		auto& moonTransform = m_moon.GetTransform();
+		auto& planeTransform = m_plane.GetTransform();
+
+		XMFLOAT3 moonPos = moonTransform.GetPosition();
+		XMVECTOR moonVec = XMLoadFloat3(&moonPos);
+
+		XMFLOAT3 planePos = planeTransform.GetPosition();
+		XMVECTOR planeVec = XMLoadFloat3(&planePos);
+
+		XMVECTOR right = planeTransform.GetRightAxisXM();
+		XMVECTOR forward = planeTransform.GetForwardAxisXM();
+
+		XMVECTOR moveDir = XMVectorZero();
+		if (m_Keys['W'])
+			moveDir += forward;
+		if (m_Keys['S'])
+			moveDir -= forward;
+		if (m_Keys['A'])
+			moveDir -= right;
+		if (m_Keys['D'])
+			moveDir += right;
+
+		if (!XMVector3Equal(moveDir, XMVectorZero()))
+		{
+			XMVECTOR fromVec = XMVector3Normalize(planeVec - moonVec);
+
+			float moveSpeed = 5.0f;
+			moveDir = XMVector3Normalize(moveDir);
+			XMVECTOR newPlaneVec = planeVec + moveDir * moveSpeed * dt;
+			XMFLOAT3 newPlanePos;
+			XMStoreFloat3(&newPlanePos, newPlaneVec);
+
+			XMVECTOR toVec = XMVector3Normalize(XMLoadFloat3(&newPlanePos) - moonVec);
+
+			XMVECTOR axis = XMVector3Normalize(XMVector3Cross(fromVec, toVec));
+			float angle = XMVectorGetX(XMVector3AngleBetweenVectors(fromVec, toVec));
+
+			planeTransform.RotateAroundXM(moonPos, axis, angle);
+		}
+
+		if (rawToRotate != 0.0f)
+		{
+			planeTransform.RotateAround(planeTransform.GetPosition(), planeTransform.GetUpAxis(), rawToRotate);
+			rawToRotate = 0.0f;
+		}
+	}
 }
 
 void GameApp::CameraMove(float dt) {
@@ -272,6 +395,7 @@ void GameApp::UpdateScene(float dt)
 		if (m_PlaneMovePos == EPlaneMovePos::Earth) {
 			XMFLOAT3 pos = m_earth.GetTransform().GetPosition();
 			m_plane.GetTransform().SetPosition(pos.x, pos.y + m_earthRadius, pos.z);
+			m_plane.GetTransform().SetRotation(0.0f, 0.0f, 0.0f);
 		}
 		else if (m_PlaneMovePos == EPlaneMovePos::EarthOrbit) {
 			m_planeEarthRevolutionAngle = 0.0f;
@@ -284,18 +408,35 @@ void GameApp::UpdateScene(float dt)
 			float xRot = mx * cosf(tilt);
 			float yRot = mx * sinf(tilt);
 			m_plane.GetTransform().SetPosition(pos.x - xRot, pos.y - yRot, pos.z - mz);
+			m_plane.GetTransform().SetRotation(0.0f, 0.0f, 0.0f);
 		}
 		else if (m_PlaneMovePos == EPlaneMovePos::EarthMoonOrbit) {
+			m_planeEarthMoonRevolutionAngle = 0.0f;
 			XMFLOAT3 pos = m_earth.GetTransform().GetPosition();
-			m_plane.GetTransform().SetPosition(pos.x, pos.y + m_earthRadius, pos.z);
+			float mx = EarthMoonOrbitRadiusA * cosf(m_planeEarthMoonRevolutionAngle) + EarthMoonOrbitRadiusC;
+			float mz = EarthMoonOrbitRadiusB * sinf(m_planeEarthMoonRevolutionAngle);
+			float tilt = m_inclinationAngle;
+			float xRot = mx * cosf(tilt);
+			float yRot = mx * sinf(tilt);
+			m_plane.GetTransform().SetPosition(pos.x - xRot, pos.y - yRot, pos.z - mz);
+			m_plane.GetTransform().SetRotation(0.0f, 0.0f, 0.0f);
 		}
 		else if (m_PlaneMovePos == EPlaneMovePos::MoonOrbit) {
-			XMFLOAT3 pos = m_earth.GetTransform().GetPosition();
-			m_plane.GetTransform().SetPosition(pos.x, pos.y + m_earthRadius, pos.z);
+			m_planeMoonRevolutionAngle = 0.0f;
+			XMFLOAT3 pos = m_moon.GetTransform().GetPosition();
+			float radius = 25.0f;
+			float mx = radius * cosf(m_planeMoonRevolutionAngle);
+			float mz = radius * sinf(m_planeMoonRevolutionAngle);
+			float tilt = m_inclinationAngle;
+			float xRot = mx * cosf(tilt);
+			float yRot = mx * sinf(tilt);
+			m_plane.GetTransform().SetPosition(pos.x - xRot, pos.y - yRot, pos.z - mz);
+			m_plane.GetTransform().SetRotation(0.0f, 0.0f, 0.0f);
 		}
 		else if (m_PlaneMovePos == EPlaneMovePos::Moon) {
-			//XMFLOAT3 pos = m_moon.GetTransform().GetPosition();
-			//m_plane.GetTransform().SetPosition(pos.x, pos.y + m_moonRadius, pos.z);
+			XMFLOAT3 pos = m_moon.GetTransform().GetPosition();
+			m_plane.GetTransform().SetPosition(pos.x, pos.y + m_moonRadius, pos.z);
+			m_plane.GetTransform().SetRotation(0.0f, 0.0f, 0.0f);
 		}
 	}
 
@@ -337,6 +478,17 @@ void GameApp::DrawScene()
 	m_moon.Draw(m_pd3dImmediateContext.Get(), m_BasicEffect);
 	m_plane.Draw(m_pd3dImmediateContext.Get(), m_BasicEffect);
 
+	if (m_pd2dRenderTarget != nullptr)
+	{
+		m_pd2dRenderTarget->BeginDraw();
+		std::wstring textStr = L"切换灯光类型: 1-平行光 2-点光 3-聚光灯\n"
+			L"切换模型: Q-立方体 W-球体 E-圆柱体 R-圆锥体\n"
+			L"S-切换模式 当前模式: ";
+		m_pd2dRenderTarget->DrawTextW(textStr.c_str(), (UINT32)textStr.size(), m_pTextFormat.Get(),
+			D2D1_RECT_F{ 0.0f, 0.0f, 600.0f, 200.0f }, m_pColorBrush.Get());
+		HR(m_pd2dRenderTarget->EndDraw());
+	}
+
 	HR(m_pSwapChain->Present(0, m_IsDxgiFlipModel ? DXGI_PRESENT_ALLOW_TEARING : 0));
 }
 
@@ -369,12 +521,13 @@ bool GameApp::InitResource()
 	Transform& moonTransform = m_moon.GetTransform();
 	moonTransform.SetPosition(50.0f, 30.0f, -1000.0f);
 
-	pModel = m_ModelManager.CreateFromFile("Resource\\Models\\plane.obj");
+	pModel = m_ModelManager.CreateFromFile("Resource\\Models\\spaceship.obj");
 	m_plane.SetModel(pModel);
 	pModel->SetDebugObjectName("plane");
 
 	Transform& planeTransform = m_plane.GetTransform();
 	planeTransform.SetPosition(0.0f, 30.0f, -1000.0f);
+	planeTransform.SetScale(0.5f, 0.5f, 0.5f);
 
 	// ******************
 	// 初始化摄像机
@@ -404,7 +557,7 @@ bool GameApp::InitResource()
 	m_BasicEffect.SetDirLight(0, dirLight);
 	// 灯光
 	PointLight pointLight{};
-	pointLight.position = XMFLOAT3(0.0f, 20.0f, 0.0f);
+	pointLight.position = XMFLOAT3(0.0f, 0.0f, 0.0f);
 	pointLight.ambient = XMFLOAT4(0.3f, 0.3f, 0.3f, 1.0f);
 	pointLight.diffuse = XMFLOAT4(0.7f, 0.7f, 0.7f, 1.0f);
 	pointLight.specular = XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f);

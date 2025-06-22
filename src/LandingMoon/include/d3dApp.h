@@ -8,6 +8,8 @@
 #include <string>
 #include <string_view>
 #include "WinMin.h"
+#include <d2d1.h>
+#include <dwrite.h>
 #include <d3d11_1.h>
 #include <DirectXMath.h>
 #include "CpuTimer.h"
@@ -62,6 +64,12 @@ protected:
     ComPtr<ID3D11RenderTargetView> m_pRenderTargetViews[2];     // 所有后备缓冲区对应的渲染目标视图
 
     CpuTimer m_Timer;            // 计时器
+
+    ComPtr<ID2D1Factory> m_pd2dFactory;							// D2D工厂
+    ComPtr<ID2D1RenderTarget> m_pd2dRenderTarget;				// D2D渲染目标
+    ComPtr<ID2D1SolidColorBrush> m_pColorBrush;	    // 单色笔刷
+    ComPtr<IDWriteFont> m_pFont;					// 字体
+    ComPtr<IDWriteTextFormat> m_pTextFormat;		// 文本格式
 
     // Direct3D 11
     ComPtr<ID3D11Device> m_pd3dDevice;                          // D3D11设备
