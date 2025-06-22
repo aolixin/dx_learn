@@ -53,6 +53,9 @@ private:
 	float m_sunOrbitRadius = 1000.0f;
 	float m_earthRadius = 30.0f;
 	float m_earthOrbitRadius = 50.0f;
+	float EarthMoonOrbitRadiusA = 170.0f;
+	float EarthMoonOrbitRadiusB = 150.0f;
+
 
 	int prevMouseX = -1;  // 初始为无效值，表示尚未记录
 	int prevMouseY = -1;

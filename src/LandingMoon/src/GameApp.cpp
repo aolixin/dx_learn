@@ -122,8 +122,10 @@ void GameApp::MoonRevolution(float dt)
 	float moonRadius = 50.0f;
 
 	// 原始圆周轨道坐标（XZ 平面）
-	float mx = moonRadius * sinf(moonAngle);
-	float mz = moonRadius * cosf(moonAngle);
+	//float mx = moonRadius * sinf(moonAngle);
+	//float mz = moonRadius * cosf(moonAngle);
+	float mx = EarthMoonOrbitRadiusA * cosf(moonAngle);
+	float mz = EarthMoonOrbitRadiusB * sinf(moonAngle);
 	float my = 0;
 
 	// 绕 X 轴倾斜 30 度（把 Z 平面往上抬）
