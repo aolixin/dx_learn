@@ -59,7 +59,12 @@ private:
 	GameObject m_plane;
 
 	std::shared_ptr<FirstPersonCamera> m_pCamera;
-	float m_Angle = 0.0f;
+
+	float m_inclinationAngle = - DirectX::XM_PIDIV2 / 3;
+	float m_earthRevolutionAngle = 0.0f;
+	float m_moonRevolutionAngle = 0.0f;
+	float m_planeEarthRevolutionAngle = 0.0f;
+
 	float m_sunOrbitRadius = 1000.0f;
 	float m_earthRadius = 30.0f;
 	float m_moonRadius = 10.0f;
@@ -73,6 +78,8 @@ private:
 	int prevMouseY = -1;
 
 	float pitch = 0.0f;
+	float rawToRotate = 0.0f;
+	float distance = 3.0f;
 
 	const float deltaEarthRevolution = DirectX::XM_PIDIV4 / 16;
 

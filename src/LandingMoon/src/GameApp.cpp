@@ -71,12 +71,12 @@ void GameApp::OnResize()
 
 void GameApp::EarthRevolution(float dt) {
 	auto deltaAngle = deltaEarthRevolution * dt;
-	m_Angle += deltaAngle;
-	if (m_Angle > XM_2PI)
-		m_Angle -= XM_2PI;
+	m_earthRevolutionAngle += deltaAngle;
+	if (m_earthRevolutionAngle > XM_2PI)
+		m_earthRevolutionAngle -= XM_2PI;
 
-	float x = m_sunOrbitRadius * sinf(m_Angle);
-	float z = m_sunOrbitRadius * cosf(m_Angle);
+	float x = m_sunOrbitRadius * sinf(m_earthRevolutionAngle);
+	float z = m_sunOrbitRadius * cosf(m_earthRevolutionAngle);
 
 	float y = 0.0f;
 
@@ -105,14 +105,14 @@ void GameApp::EarthRevolution(float dt) {
 void GameApp::MoonRevolution(float dt)
 {
 	auto deltaAngle = deltaEarthRevolution * dt;
-	m_Angle += deltaAngle;
-	if (m_Angle > XM_2PI)
-		m_Angle -= XM_2PI;
+	m_moonRevolutionAngle += deltaAngle;
+	if (m_moonRevolutionAngle > XM_2PI)
+		m_moonRevolutionAngle -= XM_2PI;
 
 	// 地球世界坐标
 	XMFLOAT3 earthPos = m_earth.GetTransform().GetPosition();
 
-	float moonAngle = m_Angle * 12.0f;
+	float moonAngle = m_moonRevolutionAngle * 12.0f;
 
 	float moonRadius = 50.0f;
 
@@ -120,7 +120,7 @@ void GameApp::MoonRevolution(float dt)
 	float mz = EarthMoonOrbitRadiusB * sinf(moonAngle);
 	float my = 0;
 
-	float tilt = XMConvertToRadians(-30.0f); // 30°
+	float tilt = m_inclinationAngle;
 	float xRot = mx * cosf(tilt);
 	float yRot = mx * sinf(tilt);
 
@@ -181,16 +181,25 @@ void GameApp::PlaneMove(float dt) {
 				, angle
 			);
 		}
+		if (rawToRotate != 0.0f)
+		{
+			planeTransform.RotateAround(planeTransform.GetPosition(), planeTransform.GetUpAxis(), rawToRotate);
+			rawToRotate = 0.0f;
+		}
 	}
 	else if (m_PlaneMovePos == EPlaneMovePos::EarthOrbit) {
 
-		float mx = m_earthOrbitRadius * sinf(0.0f);
-		float mz = m_earthOrbitRadius * cosf(0.0f);
-		float my = 0;
+		auto& planeTransform = m_plane.GetTransform();
+		//if (m_Keys['W'])
+		//	moveDir += forward;
+		//if (m_Keys['S'])
+		//	moveDir -= forward;
 
-		float tilt = XMConvertToRadians(-30.0f); // 30°
-		float xRot = mx * cosf(tilt);
-		float yRot = mx * sinf(tilt);
+		if (rawToRotate != 0.0f)
+		{
+			planeTransform.RotateAround(planeTransform.GetPosition(), planeTransform.GetUpAxis(), rawToRotate);
+			rawToRotate = 0.0f;
+		}
 	}
 }
 
@@ -198,8 +207,6 @@ void GameApp::CameraMove(float dt) {
 	auto& planeTransform = m_plane.GetTransform();
 	auto planePos = planeTransform.GetPosition();
 	XMVECTOR planeVec = XMLoadFloat3(&planePos);
-
-	float distance = 3.0f;
 
 	XMVECTOR cameraVec = planeTransform.GetForwardAxisXM() * -distance + planeVec;
 
@@ -248,15 +255,16 @@ void GameApp::UpdateScene(float dt)
 			m_plane.GetTransform().SetPosition(pos.x, pos.y + m_earthRadius, pos.z);
 		}
 		else if (m_PlaneMovePos == EPlaneMovePos::EarthOrbit) {
+			m_planeEarthRevolutionAngle = 0.0f;
 			XMFLOAT3 pos = m_earth.GetTransform().GetPosition();
-			float mx = m_earthOrbitRadius * sinf(0.0f);
-			float mz = m_earthOrbitRadius * cosf(0.0f);
+			float mx = m_earthOrbitRadius * cosf(m_planeEarthRevolutionAngle);
+			float mz = m_earthOrbitRadius * sinf(m_planeEarthRevolutionAngle);
 			float my = 0;
 
-			float tilt = XMConvertToRadians(-30.0f); // 30°
+			float tilt = m_inclinationAngle;
 			float xRot = mx * cosf(tilt);
 			float yRot = mx * sinf(tilt);
-			m_plane.GetTransform().SetPosition(pos.x + xRot, pos.y + yRot, pos.z + mz);
+			m_plane.GetTransform().SetPosition(pos.x - xRot, pos.y - yRot, pos.z - mz);
 		}
 		else if (m_PlaneMovePos == EPlaneMovePos::EarthMoonOrbit) {
 			XMFLOAT3 pos = m_earth.GetTransform().GetPosition();
@@ -305,13 +313,10 @@ void GameApp::DrawScene()
 	m_pd3dImmediateContext->RSSetViewports(1, &viewport);
 
 	m_BasicEffect.SetRenderDefault();
-	//m_Ground.Draw(m_pd3dImmediateContext.Get(), m_BasicEffect);
 	m_sun.Draw(m_pd3dImmediateContext.Get(), m_BasicEffect);
 	m_earth.Draw(m_pd3dImmediateContext.Get(), m_BasicEffect);
 	m_moon.Draw(m_pd3dImmediateContext.Get(), m_BasicEffect);
 	m_plane.Draw(m_pd3dImmediateContext.Get(), m_BasicEffect);
-
-	//ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 
 	HR(m_pSwapChain->Present(0, m_IsDxgiFlipModel ? DXGI_PRESENT_ALLOW_TEARING : 0));
 }
@@ -355,7 +360,6 @@ bool GameApp::InitResource()
 	// ******************
 	// 初始化摄像机
 	//
-
 	auto camera = std::make_shared<FirstPersonCamera>();
 	m_pCamera = camera;
 
@@ -422,10 +426,7 @@ LRESULT GameApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 			float rotateAmountY = deltaX * 0.01f;
 			float rotateAmountX = deltaY * 0.01f;
 			this->pitch += rotateAmountX;
-
-			auto& planeTransform = m_plane.GetTransform();
-
-			planeTransform.RotateAround(m_earth.GetTransform().GetPosition(), planeTransform.GetUpAxis(), rotateAmountY);
+			this->rawToRotate += rotateAmountY;
 		}
 
 		prevMouseX = xPos;
@@ -443,6 +444,16 @@ LRESULT GameApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		break;
+
+	case WM_MOUSEWHEEL:
+	{
+		short delta = GET_WHEEL_DELTA_WPARAM(wParam);
+		if (delta < 0)
+			distance = std::min(distance + 1, 10.0f);
+		else if (delta > 0)
+			distance = std::max(distance - 1, 2.0f);
+		break;
+	}
 
 	}
 
