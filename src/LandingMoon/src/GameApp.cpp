@@ -46,6 +46,9 @@ bool GameApp::Init()
 	if (!m_TexEffect.InitAll(m_pd3dDevice.Get()))
 		return false;
 
+	if (!m_SkyboxEffect.InitAll(m_pd3dDevice.Get()))
+		return false;
+
 	if (!InitResource())
 		return false;
 
@@ -67,6 +70,7 @@ void GameApp::OnResize()
 		m_pCamera->SetFrustum(XM_PI / 3, AspectRatio(), 1.0f, 1000.0f);
 		m_pCamera->SetViewPort(0.0f, 0.0f, (float)m_ClientWidth, (float)m_ClientHeight);
 		m_TexEffect.SetProjMatrix(m_pCamera->GetProjMatrixXM());
+		m_SkyboxEffect.SetProjMatrix(m_pCamera->GetProjMatrixXM());
 	}
 }
 
@@ -451,6 +455,8 @@ void GameApp::UpdateScene(float dt)
 
 	CameraMove(dt);
 
+
+	m_SkyboxEffect.SetViewMatrix(m_pCamera->GetViewMatrixXM());
 }
 
 
@@ -480,6 +486,9 @@ void GameApp::DrawScene()
 	m_moon.Draw(m_pd3dImmediateContext.Get(), m_TexEffect);
 	m_plane.Draw(m_pd3dImmediateContext.Get(), m_TexEffect);
 
+	// 绘制天空盒
+	m_SkyboxEffect.SetRenderDefault();
+	m_Skybox.Draw(m_pd3dImmediateContext.Get(), m_SkyboxEffect);
 
 	HR(m_pSwapChain->Present(0, m_IsDxgiFlipModel ? DXGI_PRESENT_ALLOW_TEARING : 0));
 }
@@ -521,6 +530,37 @@ bool GameApp::InitResource()
 	planeTransform.SetPosition(0.0f, 30.0f, -1000.0f);
 	planeTransform.SetScale(0.5f, 0.5f, 0.5f);
 
+	pModel = m_ModelManager.CreateFromGeometry("Skybox", Geometry::CreateBox());
+	pModel->SetDebugObjectName("Skybox");
+	pModel->materials[0].Set<std::string>("$Skybox", "sky");
+	m_Skybox.SetModel(pModel);
+
+	// Daylight
+	std::string filenameStr;
+	std::vector<ID3D11ShaderResourceView*> pCubeTextures;
+	ComPtr<ID3D11Texture2D> pTex;
+	D3D11_TEXTURE2D_DESC texDesc;
+	std::unique_ptr<TextureCube> pTexCube;
+	{
+		filenameStr = "Resource\\Textures\\sky0.png";
+		for (size_t i = 0; i < 6; ++i)
+		{
+			filenameStr[filenameStr.size() - 5] = '0' + (char)i;
+			pCubeTextures.push_back(m_TextureManager.CreateFromFile(filenameStr));
+		}
+
+		pCubeTextures[0]->GetResource(reinterpret_cast<ID3D11Resource**>(pTex.ReleaseAndGetAddressOf()));
+		pTex->GetDesc(&texDesc);
+		pTexCube = std::make_unique<TextureCube>(m_pd3dDevice.Get(), texDesc.Width, texDesc.Height, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB);
+		pTexCube->SetDebugObjectName("sky");
+		for (uint32_t i = 0; i < 6; ++i)
+		{
+			pCubeTextures[i]->GetResource(reinterpret_cast<ID3D11Resource**>(pTex.ReleaseAndGetAddressOf()));
+			m_pd3dImmediateContext->CopySubresourceRegion(pTexCube->GetTexture(), D3D11CalcSubresource(0, i, 1), 0, 0, 0, pTex.Get(), 0, nullptr);
+		}
+		m_TextureManager.AddTexture("sky", pTexCube->GetShaderResource());
+	}
+
 	// ******************
 	// 初始化摄像机
 	//
@@ -540,6 +580,9 @@ bool GameApp::InitResource()
 	m_TexEffect.SetProjMatrix(camera->GetProjMatrixXM());
 	m_TexEffect.SetEyePos(camera->GetPosition());
 
+	m_SkyboxEffect.SetViewMatrix(camera->GetViewMatrixXM());
+	m_SkyboxEffect.SetProjMatrix(camera->GetProjMatrixXM());
+
 	// 环境光
 	DirectionalLight dirLight{};
 	dirLight.ambient = XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f);
@@ -555,6 +598,7 @@ bool GameApp::InitResource()
 	pointLight.specular = XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f);
 	pointLight.att = XMFLOAT3(0.0f, 0.1f, 0.0f);
 	pointLight.range = 30.0f;
+
 	m_TexEffect.SetPointLight(0, pointLight);
 
 	return true;

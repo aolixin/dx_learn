@@ -51,6 +51,7 @@ private:
 
 	TexEffect m_TexEffect;
 	//UnlitEffect m_TexEffect;
+	SkyboxEffect m_SkyboxEffect;
 
 	std::unique_ptr<Depth2D> m_pDepthTexture;
 
@@ -58,6 +59,7 @@ private:
 	GameObject m_earth;
 	GameObject m_moon;
 	GameObject m_plane;
+	GameObject m_Skybox;
 
 	std::shared_ptr<FirstPersonCamera> m_pCamera;
 
