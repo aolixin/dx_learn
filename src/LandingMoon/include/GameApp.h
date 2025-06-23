@@ -74,9 +74,13 @@ private:
 	float m_earthRadius = 30.0f;
 	float m_moonRadius = 10.0f;
 	float m_earthOrbitRadius = 50.0f;
+
 	float EarthMoonOrbitRadiusA = 170.0f;
 	float EarthMoonOrbitRadiusB = 150.0f;
 	float EarthMoonOrbitRadiusC = 80.0f;
+
+	float m_minDistanceToLeaveEarthMoonorbit = 100.0f;
+
 	float m_moonOrbitRadius = 15.0f;
 
 

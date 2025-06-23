@@ -282,6 +282,22 @@ public:
 		return rotation;
 	}
 
+	// 计算当前 Transform 与另一个 Transform 之间的位置距离
+	float GetDistanceTo(const Transform& other) const
+	{
+		using namespace DirectX;
+
+		XMVECTOR pos1 = XMLoadFloat3(&m_Position);
+		XMVECTOR pos2 = XMLoadFloat3(&other.m_Position);
+		XMVECTOR delta = XMVectorSubtract(pos1, pos2);
+		XMVECTOR lengthVec = XMVector3Length(delta);
+
+		float distance;
+		XMStoreFloat(&distance, lengthVec);
+		return distance;
+	}
+
+
 private:
 	DirectX::XMFLOAT3 m_Scale = { 1.0f, 1.0f, 1.0f };				// 缩放
 	DirectX::XMFLOAT4 m_Rotation = { 0.0f, 0.0f, 0.0f, 1.0f };		// 旋转四元数

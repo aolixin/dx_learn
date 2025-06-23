@@ -389,11 +389,19 @@ void GameApp::UpdateScene(float dt)
 	if (m_Keys['M'] || m_Keys['E']) {
 		if (m_Keys['M'])
 		{
+			if (m_PlaneMovePos == EPlaneMovePos::EarthMoonOrbit) {
+				if (m_plane.GetTransform().GetDistanceTo(m_moon.GetTransform()) > m_minDistanceToLeaveEarthMoonorbit)
+					return;
+			}
 			m_PlaneMovePos = EPlaneMovePos(std::min((m_PlaneMovePos + 1), EPlaneMovePos::Count - 1));
 			m_Keys['M'] = false;
 		}
 		if (m_Keys['E'])
 		{
+			if (m_PlaneMovePos == EPlaneMovePos::EarthMoonOrbit) {
+				if (m_plane.GetTransform().GetDistanceTo(m_earth.GetTransform()) > m_minDistanceToLeaveEarthMoonorbit)
+					return;
+			}
 			m_PlaneMovePos = EPlaneMovePos(std::max(m_PlaneMovePos - 1, 0));
 			m_Keys['E'] = false;
 		}

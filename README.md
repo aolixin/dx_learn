@@ -21,7 +21,7 @@ a simple game made with d3d11
 + 在地球轨道上时：
   + ws 控制绕轨道移动
   + 按 E 登录地球，可随时登录
-  + 按 M 进入地月轨道，需要位移到 [地球轨道] 和 [地月轨道] 较近的位置才能进入
+  + 按 M 进入地月轨道，可随时进入
 + 在地月轨道上时：
   + ws 控制绕轨道移动
   + 按 E 进入地球轨道，需要位移到 [地月轨道] 和 [地球轨道] 较近的位置才能进入
@@ -33,3 +33,9 @@ a simple game made with d3d11
 + 在月球上时：
   + wasd 控制飞船移动
   + 按  E 进入月球轨道，可随时进入
+
+
+
+## 参考
+
++ https://github.com/MKXJun/DirectX11-With-Windows-SDK
