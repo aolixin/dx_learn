@@ -9,6 +9,16 @@ a simple game made with d3d11
 
 
 
+## 初始化
+
++ 采用 cmake 管理工程
++ 构件工程：双击 build_msvc.cmd，会自动构建 vs 工程到 src/build 目录，并且会复制一份可执行文件到 bin 目录
++ 运行工程：两种方式
+  1. 进入 bin 目录点击可执行文件
+  2. 打开 src/build/LandingMoon.sln vs 工程，把 LandingMoon 设置为启动项目，通过 vs 执行工程
+
+
+
 ## 使用
 
 + 采用第三人称视角
@@ -38,4 +48,4 @@ a simple game made with d3d11
 
 ## 参考
 
-+ https://github.com/MKXJun/DirectX11-With-Windows-SDK
++ https://github.com/MKXJun/DirectX11-With-Windows-SDK -- 参考了一些 d3d 写法
