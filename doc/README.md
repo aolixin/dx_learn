@@ -11,11 +11,11 @@ a simple game made with d3d11
 
 ## 初始化
 
-+ 采用 cmake 管理工程
-+ 构件工程：双击 build_msvc.cmd，会自动构建 vs 工程到 src/build 目录，并且会复制一份可执行文件到 bin 目录
++ 采用 cmake version 3.28.1 管理工程
++ 构件工程：双击 build_vs2019.cmd，会构建 vs 工程到 src/build 目录，并且会复制一份可执行文件到 bin 目录
 + 运行工程：两种方式
   1. 进入 bin 目录点击可执行文件
-  2. 打开生成的 [src/build/LandingMoon.sln] vs 工程，把 LandingMoon 设置为启动项目，通过 vs 执行工程
+  2. 打开生成的 [src/build/LandingMoon.sln] vs 工程，设置 LandingMoon 为启动项目，通过 vs 执行工程
 
 
 
@@ -43,12 +43,6 @@ a simple game made with d3d11
 + 在月球上时：
   + wasd 控制飞船移动
   + 按  E 进入月球轨道，可随时进入
-
-
-
-## 细节
-
-TODO
 
 
 

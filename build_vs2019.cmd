@@ -5,11 +5,11 @@ cd src
 del /S /Q *.cso
 
 
-cmake --preset "vs2022 - amd64"
+cmake --preset "vs2019 - amd64"
 
-cmake --build --preset "vs2022 - amd64-debug"
+cmake --build --preset "vs2019 - amd64-debug"
 
-cmake --build --preset "vs2022 - amd64-release"
+cmake --build --preset "vs2019 - amd64-release"
 
 cd ..
 
