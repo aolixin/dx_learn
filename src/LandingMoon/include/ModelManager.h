@@ -1,11 +1,3 @@
-//***************************************************************************************
-// GameObject.h by X_Jun(MKXJun) (C) 2018-2022 All Rights Reserved.
-// Licensed under the MIT License.
-//
-// 简易游戏对象
-// Simple game object.
-//***************************************************************************************
-
 #pragma once
 
 #ifndef MODEL_MANAGER_H

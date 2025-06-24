@@ -1,11 +1,3 @@
-//***************************************************************************************
-// Transform.h by X_Jun(MKXJun) (C) 2018-2022 All Rights Reserved.
-// Licensed under the MIT License.
-//
-// 描述对象缩放、旋转(四元数为基础)、平移
-// Describe object scale, rotation(quaternion-based) and translation
-//***************************************************************************************
-
 #pragma once
 
 #ifndef TRANSFORM_H

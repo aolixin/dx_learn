@@ -1,11 +1,3 @@
-//***************************************************************************************
-// EffectsHelper.h by X_Jun(MKXJun) (C) 2018-2022 All Rights Reserved.
-// Licensed under the MIT License.
-//
-// 定义一些实用的特效助手类
-// Define utility effect helper classes.
-//*************************************************************************************** 
-
 #pragma once
 
 #ifndef EFFECT_HELPER_H

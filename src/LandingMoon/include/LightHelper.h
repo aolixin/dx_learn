@@ -1,3 +1,5 @@
+#pragma once
+
 #ifndef LIGHTHELPER_H
 #define LIGHTHELPER_H
 

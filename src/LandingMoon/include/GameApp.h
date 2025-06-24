@@ -1,3 +1,5 @@
+#pragma once
+
 #ifndef GAMEAPP_H
 #define GAMEAPP_H
 

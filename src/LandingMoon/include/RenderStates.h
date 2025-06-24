@@ -1,11 +1,3 @@
-//***************************************************************************************
-// RenderStates.h by X_Jun(MKXJun) (C) 2018-2022 All Rights Reserved.
-// Licensed under the MIT License.
-//
-// 提供一些渲染状态
-// Provide some render states.
-//***************************************************************************************
-
 #pragma once
 
 #ifndef RENDER_STATES_H

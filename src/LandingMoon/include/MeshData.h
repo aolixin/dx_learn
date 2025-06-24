@@ -1,11 +1,3 @@
-//***************************************************************************************
-// MeshData.h by X_Jun(MKXJun) (C) 2018-2022 All Rights Reserved.
-// Licensed under the MIT License.
-//
-// 存放网格数据
-// Mesh data storage.
-//***************************************************************************************
-
 #pragma once
 
 #ifndef MESH_DATA_H
