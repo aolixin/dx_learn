@@ -22,7 +22,7 @@
       "generator": "Visual Studio 16 2019",
       "toolset": "host=x64",
       "architecture": "x64",
-      "binaryDir": "${sourceDir}/build-vs2019",
+      "binaryDir": "${sourceDir}/build_vs2019",
       "cacheVariables": {
         "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}",
         "CMAKE_C_COMPILER": "cl.exe",

@@ -6,6 +6,7 @@ x64/
 .vscode/
 bin/
 build/
+build_vs2019/
 backup/
 lib/
 vsxmake2022/
