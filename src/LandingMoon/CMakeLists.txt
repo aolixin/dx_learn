@@ -76,10 +76,11 @@ set_target_properties(LandingMoon PROPERTIES
 
 
 add_custom_command(TARGET LandingMoon POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${ASSIMP_LIBRARY_OUTPUT_DIRECTORY}/$<CONFIG>/assimp-vc143-mt.dll"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${ASSIMP_LIBRARY_OUTPUT_DIRECTORY}/$<CONFIG>"
         "$<TARGET_FILE_DIR:LandingMoon>"
 )
+
 
 
 

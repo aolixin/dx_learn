@@ -13,8 +13,8 @@ cmake --build --preset "vs2019 - amd64-release"
 
 cd ..
 
-xcopy /E /I /Y src\build\bin\Debug bin\Debug\
+xcopy /E /I /Y src\build_vs2019\bin\Debug bin\Debug\
 
-xcopy /E /I /Y src\build\bin\Release bin\Release\
+xcopy /E /I /Y src\build_vs2019\bin\Release bin\Release\
 
 pause
