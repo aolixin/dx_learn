@@ -44,6 +44,8 @@ a simple game made with d3d11
   + wasd 控制飞船移动
   + 按  E 进入月球轨道，可随时进入
 
+## game 内
+![alt text](img1.jpg)
 
 
 ## 引用
